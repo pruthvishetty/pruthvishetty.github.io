@@ -7,9 +7,9 @@ window.addEventListener('DOMContentLoaded', (event) => {
   const cityName = document.getElementById('city-name');
 
   const cityNames = {
-    'bangalore.jpg': 'Bangalore, India',
+    'bangalore.jpg': 'Bengaluru, India',
     'sf.jpeg': 'San Francisco, CA',
-    'iisc.jpeg': 'IISc, Bangalore, India',
+    'iisc.jpeg': 'IISc, Bengaluru, India',
     'btown.jpeg': 'Bloomington, IN',
     'indy.jpeg': 'Indianapolis, IN',
     'newport-beach.jpeg': 'Newport Beach, CA',
