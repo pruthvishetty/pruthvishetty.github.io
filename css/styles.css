@@ -18,10 +18,11 @@ body {
   z-index: 2000;
   top: 0;
   left: 0;
-  background-color:  var(--sidebar-bg-color);
+  background-color:  #111;
   overflow-x: hidden;
   transition: 0.1s;
   padding-top: 60px;
+  color: white;
 }
 
 .sidenav .custom-control {
@@ -80,6 +81,13 @@ body {
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 }
 
+#mySidenav #day,
+#mySidenav #date,
+#mySidenav #week-number {
+  text-align: center;
+  margin-top: 10px;
+}
+
 
 #landing-intro-text {
   color: white;
@@ -90,7 +98,7 @@ body {
 #intro-text {
   color: var(--primary-color);
 /*  text-shadow: 2px 2px 4px #000000;*/
-  margin: 0 100px;
+  margin: 0 10px;
 }
 
 #intro-text h1 {
@@ -332,7 +340,6 @@ footer {
   --secondary-color: #222;
   --bg-color: #FFFFFF;
   --text-color: #333;
-  --sidebar-bg-color: #d3d3d3;
 }
 
 /* Dark Theme */
@@ -341,6 +348,19 @@ footer {
   --secondary-color: #F5F5F5;
   --bg-color: #333;
   --text-color: white;
-  --sidebar-bg-color: #111;
+}
+
+.year-progress-container {
+  text-align: center;
+  padding: 10px;
+}
+
+#year-progress {
+  width: 80%;
+  height: 10px;
+}
+
+#year-progress-percentage {
+  padding-left: 10px;
 }
 

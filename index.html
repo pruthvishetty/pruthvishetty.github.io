@@ -25,10 +25,20 @@
 <body>
   <!-- Hamburger Menu -->
   <div id="mySidenav" class="sidenav">
+
     <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
     <div class="custom-control custom-switch">
       <input type="checkbox" class="custom-control-input" id="darkSwitch">
       <label class="custom-control-label" for="darkSwitch">Light Mode</label>
+
+    </div>
+    <div id="day"></div>
+    <div id="date"></div>
+    <div id="week-number"></div>
+    <div class="year-progress-container">
+      <label for="year-progress">Year Progress:</label>
+      <progress id="year-progress" value="0" max="100"></progress>
+      <span id="year-progress-percentage">0%</span>
     </div>
   </div>
   <button style="font-size:30px;cursor:pointer" class="hamburger" onclick="openNav()">&#9776;</button>
@@ -90,7 +100,7 @@
         <img src="assets/images/sap.png" class="company-logo" alt="Company Logo">
         <h3>SAP Labs</h3>
         <p class="location-time">Palo Alto & Newport Beach, CA| Sep‘17 - Oct‘19</p>
-        <p>I worked as a Data Scientist in the SAP Cloud Machine Learning team and was responsible for building ML use cases and deploying them into production environments. I had the opportunity to learn from and work with brilliant engineers like <a href="https://www.linkedin.com/in/tonykueh/"> Peter Colligan</a>.
+        <p>I worked as a Data Scientist in the SAP Cloud Machine Learning team and was responsible for building ML use cases and deploying them into production environments. I had the opportunity to learn from and work with brilliant engineers like <a href="https://www.linkedin.com/in/peter-colligan/"> Peter Colligan</a>.
       </div>
       <!-- ... -->
       <div class="col-md-4">
@@ -130,9 +140,6 @@
         <p> I interned with General Electric's software org during my senior year and helped streamline multiple modules of the CRM, optimizing queries and standardizing logging practices.</p>
       </div>
     </div>
-    <!-- Rows 2 and 3 follow the same pattern -->
-
-    <!-- ... -->
   </div>
 </section>
 
@@ -358,6 +365,26 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
   <script src="js/script.js"></script>
+  <script>
+    function updateDateTime() {
+      const now = new Date();
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const day = dayNames[now.getDay()];
+      const date = now.toLocaleDateString(); // Format as you like
+      const weekNumber = Math.ceil(((now - new Date(now.getFullYear(), 0, 1)) / 86400000 + now.getDay() + 1) / 7);
+
+      document.getElementById("day").innerText = day;
+      document.getElementById("date").innerText = date;
+      document.getElementById("week-number").innerText = "Week " + weekNumber;
+    }
+
+    // Call the function once on page load
+    updateDateTime();
+
+    // Update every minute
+    setInterval(updateDateTime, 60000);
+  </script>
+
 </body>
 <footer>
   <div class="footer-content">

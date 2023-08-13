@@ -77,6 +77,19 @@ document.getElementById("darkSwitch").addEventListener("change", function() {
   }
 });
 
+function updateYearProgress() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const endOfYear = new Date(now.getFullYear() + 1, 0, 1);
+  const totalYearMilliseconds = endOfYear - startOfYear;
+  const elapsedMilliseconds = now - startOfYear;
+  const percentage = (elapsedMilliseconds / totalYearMilliseconds) * 100;
+
+  document.getElementById("year-progress").value = percentage;
+  document.getElementById("year-progress-percentage").textContent = percentage.toFixed(2) + '%';
+}
+
+updateYearProgress();
 
 
 
