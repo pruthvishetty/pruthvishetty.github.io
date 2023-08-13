@@ -1,0 +1,319 @@
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+
+.hamburger {
+  border: none;
+  background-color: transparent;
+  color: white;
+  cursor: pointer;
+  padding: 10px;
+  margin-left: 20px;
+}
+
+.sidenav {
+  height: 100%;
+  width: 0;
+  position: fixed;
+  z-index: 2000;
+  top: 0;
+  left: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: 0.5s;
+  padding-top: 60px;
+}
+
+.sidenav .custom-control {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.sidenav a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+.sidenav a:hover {
+  color: #f1f1f1;
+}
+
+.sidenav .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
+
+#fixed-bg {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: -1;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(8px);
+}
+
+#landing {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#profile-img {
+  border-radius: 50%;
+  width: 150px;
+  margin-bottom: 30px; /* Increase the gap between the image and the text */
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+
+#intro-text {
+  color: white;
+  text-shadow: 2px 2px 4px #000000;
+}
+
+#intro-text h1 {
+  font-size: 2em;
+}
+
+#intro-text .fa-volume-up {
+  cursor: pointer;
+}
+
+#social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+#social-icons a {
+  color: white;
+  font-size: 1.5em; /* This will make the icons 50% larger */
+  margin: 0 10px; /* This will add 10px of space on the left and right of each icon */
+}
+
+
+#intro {
+  position: relative;
+  z-index: 1;
+  height: 50vh;
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#intro p {
+  max-width: 50%;
+  margin: auto;
+   font-size: 1.2em;  /* Increase the font size */
+}
+
+:root {
+  --primary-color: #F5F5F5;
+  --secondary-color: #222;
+  --bg-color: #333;
+  --text-color: white;
+  --sidebar-color-dark: #444;
+  --sidebar-color-light: #f0f0d1;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+#intro {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+#mySidenav {
+  background-color: var(--sidebar-color-dark);
+}
+
+
+#city-name {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: white;
+  text-shadow: 2px 2px 4px #000000;
+  font-size: 1.5em;
+  z-index: 1;
+}
+
+#work-intro {
+  position: relative;
+  z-index: 2; /* Ensure this section is above the fixed background */
+  height: 50vh;
+  background-image: url('../assets/images/work.jpg'); /* Set the background image for the work-intro section */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  padding: 20px;
+  box-sizing: border-box;
+  text-shadow: 2px 2px 4px #000000;
+}
+
+#work-intro-text p {
+  max-width: 800px;
+  margin: auto;
+  font-size: 1.2em;
+  text-align: center;
+  color: white;
+}
+
+
+.fixed-bg-cover {
+  background-color: var(--secondary-color); /* Match the intro background color */
+}
+
+#work-experience {
+  position: relative;
+  z-index: 2;
+  height: auto; /* Allow the content to define the height */
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+  padding: 40px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+#work-experience .row {
+  margin-bottom: 60px; /* Add space between rows */
+}
+
+#work-experience .col-md-4 {
+  padding: 40px 10px; /* Reduce horizontal padding */
+  text-align: center; /* Center-align the text and images */
+  padding-left: 20px; /* Increase left padding */
+  padding-right: 20px; /* Increase right padding */
+}
+
+#work-experience .container {
+  max-width: 70%
+}
+
+.company-logo {
+  width: 100px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto 20px;
+  object-fit: cover;
+}
+
+#work-experience h4 {
+  font-size: 1.2em;
+  text-align: center;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+}
+
+.location-time {
+  font-size: 0.5em;
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+}
+
+#work-experience p {
+  font-size: 1em; /* Match the font size of intro */
+  ttext-align: center;
+  color: var(--primary-color);
+}
+
+
+
+#research-intro, #about-me-intro, #projects-intro, #hackathons-intro, #community-intro {
+  position: relative;
+  z-index: 2; /* Ensure this section is above the fixed background */
+  height: 50vh;
+ 
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  padding: 20px;
+  box-sizing: border-box;
+  text-shadow: 2px 2px 4px #000000;
+}
+
+#projects-intro { 
+ background-image: url('../assets/images/project.jpg'); /* Set the background image for the work-intro section */  
+}
+
+#hackathons-intro {
+ background-image: url('../assets/images/hack.jpg'); /* Set the background image for the work-intro section */  
+}
+
+#research-intro {
+ background-image: url('../assets/images/research.jpg'); /* Set the background image for the work-intro section */  
+}
+
+
+#community-intro {
+ background-image: url('../assets/images/notre_dame.jpg'); /* Set the background image for the work-intro section */  
+}
+
+
+#about-me-intro {
+ background-image: url('../assets/images/about-me.jpg'); /* Set the background image for the work-intro section */  
+}
+
+
+
+
+#projects-intro-text, #research-intro-text, #about-me-intro-text, #hackathons-intro-text, #community-intro-text p {
+  max-width: 800px;
+  margin: auto;
+  font-size: 1.2em;
+  text-align: center;
+  color: white;
+}
+
+footer {
+  background-color: #f0f0f0; /* Change this to your preferred color */
+  text-align: center;
+  padding: 20px 0;
+  font-size: 14px;
+  color: #333; /* Change this to your preferred text color */
+}
+
+.footer-content p {
+  margin: 5px 0;
+}
+
+.company-logo:hover {
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+
