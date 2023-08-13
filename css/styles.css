@@ -18,9 +18,9 @@ body {
   z-index: 2000;
   top: 0;
   left: 0;
-  background-color: #111;
+  background-color:  var(--sidebar-bg-color);
   overflow-x: hidden;
-  transition: 0.5s;
+  transition: 0.1s;
   padding-top: 60px;
 }
 
@@ -81,9 +81,15 @@ body {
 }
 
 
-#intro-text {
+#landing-intro-text {
   color: white;
   text-shadow: 2px 2px 4px #000000;
+  margin: 0 100px;
+}
+
+#intro-text {
+  color: var(--primary-color);
+/*  text-shadow: 2px 2px 4px #000000;*/
   margin: 0 100px;
 }
 
@@ -180,7 +186,7 @@ body {
   text-shadow: 2px 2px 4px #000000;
 }
 
-#work-intro-text p {
+#work-intro-text, #projects-intro-text, #research-intro-text, #about-me-intro-text, #hackathons-text, #community-text, #about-me-text, #about-me-intro-text p {
   max-width: 800px;
   margin: auto;
   font-size: 1.2em;
@@ -294,13 +300,13 @@ body {
 
 
 
-#projects-intro-text, #research-intro-text, #about-me-intro-text, #hackathons-intro-text, #community-intro-text p {
+/*#projects-intro-text, #research-intro-text, #about-me-intro-text, #hackathons-intro-text, #community-intro-text p {
   max-width: 800px;
   margin: auto;
   font-size: 1.2em;
   text-align: center;
   color: white;
-}
+}*/
 
 footer {
   background-color: #f0f0f0; /* Change this to your preferred color */
@@ -319,4 +325,22 @@ footer {
   transition: transform 0.3s ease;
 }
 
+/* Light Theme (default) */
+:root,
+:root.light-theme {
+  --primary-color: #F5F5F5;
+  --secondary-color: #222;
+  --bg-color: #FFFFFF;
+  --text-color: #333;
+  --sidebar-bg-color: #d3d3d3;
+}
+
+/* Dark Theme */
+:root.dark-theme {
+  --primary-color: #222;
+  --secondary-color: #F5F5F5;
+  --bg-color: #333;
+  --text-color: white;
+  --sidebar-bg-color: #111;
+}
 

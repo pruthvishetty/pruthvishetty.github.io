@@ -67,27 +67,17 @@ window.addEventListener('DOMContentLoaded', (event) => {
   });
 
 // Dark Mode Switch
-const darkSwitch = document.getElementById('darkSwitch');
-darkSwitch.checked = true; // Set dark mode as default
-darkSwitch.addEventListener('change', () => {
-  if (darkSwitch.checked) {
-    // Use dark theme
-    document.documentElement.style.setProperty('--primary-color', '#F5F5F5');
-    document.documentElement.style.setProperty('--secondary-color', '#222');
-    document.documentElement.style.setProperty('--bg-color', '#333');
-    document.documentElement.style.setProperty('--text-color', 'white');
-    document.documentElement.style.setProperty('--sidebar-color-dark', '#444');
-    darkSwitch.style.backgroundColor = '#4CAF50'; // Green color when dark mode is on
+document.getElementById("darkSwitch").addEventListener("change", function() {
+  if (this.checked) {
+    document.documentElement.classList.add("dark-theme");
+    document.documentElement.classList.remove("light-theme");
   } else {
-    // Use light theme
-    document.documentElement.style.setProperty('--primary-color', 'white');
-    document.documentElement.style.setProperty('--secondary-color', 'black');
-    document.documentElement.style.setProperty('--bg-color', '#F5F5F5');
-    document.documentElement.style.setProperty('--text-color', 'black');
-    document.documentElement.style.setProperty('--sidebar-color-light', '#f0f0d1');
-    darkSwitch.style.backgroundColor = ''; // Default color when dark mode is off
+    document.documentElement.classList.add("light-theme");
+    document.documentElement.classList.remove("dark-theme");
   }
 });
+
+
 
 
 });
