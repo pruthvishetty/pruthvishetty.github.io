@@ -110,7 +110,7 @@ body {
 #intro {
   position: relative;
   z-index: 1;
-  height: 50vh;
+  /* Remove the fixed height to allow content to flow naturally */
   background-color: var(--secondary-color);
   color: var(--text-color);
   display: flex;
@@ -121,10 +121,12 @@ body {
 }
 
 #intro p {
-  max-width: 50%;
+  max-width: 100%; /* Allow text to take full width on smaller screens */
   margin: auto;
-   font-size: 1.2em;  /* Increase the font size */
+  font-size: 1.2em;  /* Increase the font size */
+  padding: 20px; /* Add padding to ensure text doesn't touch the edges */
 }
+
 
 :root {
   --primary-color: #F5F5F5;
