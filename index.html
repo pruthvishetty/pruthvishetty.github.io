@@ -30,16 +30,20 @@
     <div class="custom-control custom-switch">
       <input type="checkbox" class="custom-control-input" id="darkSwitch">
       <label class="custom-control-label" for="darkSwitch">Light Mode</label>
+    </div>
 
+    <div id="live-clock">
+        <span id="date-display"></span> <br> <span id="time-display"></span> 
+        <button id="timezone-toggle">PT</button>
     </div>
-    <div id="day"></div>
-    <div id="date"></div>
-    <div id="week-number"></div>
-    <div class="year-progress-container">
-      <label for="year-progress">Year Progress:</label>
-      <progress id="year-progress" value="0" max="100"></progress>
-      <span id="year-progress-percentage">0%</span>
-    </div>
+    
+    <iframe
+      src="https://pruthvi-gpt.streamlit.app/?embed=true&embed_options=show_padding&embed_options=show_colored_line"
+      height="450"
+      style="width:100%;border:none;">
+    </iframe>
+</div>
+
   </div>
   <button style="font-size:30px;cursor:pointer" class="hamburger" onclick="openNav()">&#9776;</button>
 
@@ -384,14 +388,12 @@
     // Update every minute
     setInterval(updateDateTime, 60000);
   </script>
-
-</body>
 <footer>
   <div class="footer-content">
     <p>Made with ☕️ and ❤️</p>
     <p>© Pruthvi Shetty 2023</p>
   </div>
 </footer>
-
+</body>
 </html>
 

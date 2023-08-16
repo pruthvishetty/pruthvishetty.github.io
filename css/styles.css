@@ -1,5 +1,10 @@
 body {
   font-family: 'Open Sans', sans-serif;
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+  user-select: none; /* Standard syntax */
+
 }
 
 .hamburger {
@@ -23,6 +28,8 @@ body {
   transition: 0.1s;
   padding-top: 60px;
   color: white;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidenav .custom-control {
@@ -30,6 +37,7 @@ body {
   justify-content: center;
   padding: 10px 0;
   border-bottom: 1px solid #ddd;
+  align-items: center;
 }
 
 .sidenav a {
@@ -39,6 +47,8 @@ body {
   color: #818181;
   display: block;
   transition: 0.3s;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidenav a:hover {
@@ -51,6 +61,10 @@ body {
   right: 25px;
   font-size: 36px;
   margin-left: 50px;
+}
+
+.sidenav iframe {
+  margin-top: auto;
 }
 
 #fixed-bg {
@@ -265,7 +279,6 @@ body {
 }
 
 
-
 #research-intro, #about-me-intro, #projects-intro, #hackathons-intro, #community-intro {
   position: relative;
   z-index: 2; /* Ensure this section is above the fixed background */
@@ -304,17 +317,6 @@ body {
 #about-me-intro {
  background-image: url('../assets/images/about-me.jpg'); /* Set the background image for the work-intro section */  
 }
-
-
-
-
-/*#projects-intro-text, #research-intro-text, #about-me-intro-text, #hackathons-intro-text, #community-intro-text p {
-  max-width: 800px;
-  margin: auto;
-  font-size: 1.2em;
-  text-align: center;
-  color: white;
-}*/
 
 footer {
   background-color: #f0f0f0; /* Change this to your preferred color */
@@ -364,3 +366,43 @@ footer {
   padding-left: 10px;
 }
 
+#live-clock {
+    text-align: center;
+    padding: 10px;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+#timezone-toggle {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    margin-left: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#timezone-toggle:hover {
+    background-color: #777;
+}
+
+#progress-container {
+    padding: 15px;
+    text-align: center;
+}
+
+#progress-selector {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+#progress-label {
+    margin-bottom: 5px;
+}
+
+#progress-bar {
+    width: 100%;
+    height: 20px;
+}
