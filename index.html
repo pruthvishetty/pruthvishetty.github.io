@@ -36,12 +36,6 @@
         <span id="date-display"></span> <br> <span id="time-display"></span> 
         <button id="timezone-toggle">PT</button>
     </div>
-    
-    <iframe
-      src="https://pruthvi-gpt-4bfa1df6cf92.herokuapp.com/?embed=true&embed_options=show_colored_line&embed_options=dark_theme"
-      height="450"
-      style="width:100%;border:none;">
-    </iframe>
 </div>
 
   </div>
@@ -349,7 +343,7 @@
         <img src="assets/images/hello.jpeg" class="company-logo" alt="Company Logo">
         <h3>Hi, there!</h3>
         <p class="location-time"></p>
-        <p>I appreciate logic, wit and humor. Topics which I closely follow are India, Technology, Education, Yoga & Clean Energy. I <a href="https://medium.com/pruthvi-shetty">blog</a> occasionally and take to <a href="https://twitter.com/pruthvishetty">Twitter</a> to share things I find interesting.</p>
+        <p>I appreciate logic, wit and humor. Topics which I closely follow are India, Technology, Education, Yoga & Clean Energy. I <a href="https://medium.com/pruthvi-shetty">blog</a> occasionally and take to <a href="https://twitter.com/pruthvishetty">Twitter</a> to share things I find interesting. You can chat with my digital persona below.</p>
       </div>
       <div class="col-md-4">
         <img src="assets/images/mtbi.pbm" class="company-logo" alt="Company Logo">
@@ -365,34 +359,31 @@
       </div>
     </div>
   </section>
+
+<section id="embed-iframe">
+  <div class="container">
+     <iframe
+     frameBorder = 0
+  src="https://pruthvi-gpt-4bfa1df6cf92.herokuapp.com/?embed=true&embed_options=show_colored_line&embed_options=dark_theme"
+  height="600" 
+  style="width:100% ; "
+></iframe>
+    </div>
+  </section>
+
+
+
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
   <script src="js/script.js"></script>
-  <script>
-    function updateDateTime() {
-      const now = new Date();
-      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const day = dayNames[now.getDay()];
-      const date = now.toLocaleDateString(); // Format as you like
-      const weekNumber = Math.ceil(((now - new Date(now.getFullYear(), 0, 1)) / 86400000 + now.getDay() + 1) / 7);
-
-      document.getElementById("day").innerText = day;
-      document.getElementById("date").innerText = date;
-      document.getElementById("week-number").innerText = "Week " + weekNumber;
-    }
-
-    // Call the function once on page load
-    updateDateTime();
-
-    // Update every minute
-    setInterval(updateDateTime, 60000);
-  </script>
 <footer>
   <div class="footer-content">
-    <p>Made with ☕️ and ❤️</p>
+
+    <p>Made with <a href="https://masalaandchai.com/masala-chai/">☕️</a> and <a href="https://thenerdd.files.wordpress.com/2019/04/calvin_and_hobbes_comic_by_bill_wattersonjpg.jpg">❤️</a></p>
     <p>© Pruthvi Shetty 2023</p>
   </div>
+
 </footer>
 </body>
 </html>
