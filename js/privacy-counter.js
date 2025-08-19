@@ -104,8 +104,8 @@ class PrivacyCounter {
                 const daysSinceLaunch = Math.floor((Date.now() - new Date('2025-08-18').getTime()) / (1000 * 60 * 60 * 24));
                 
                 return {
-                    totalViews: daysSinceLaunch > 0 ? `Day ${daysSinceLaunch}` : 'Just launched!',
-                    monthlyViews: 'Building data...'
+                    totalViews: daysSinceLaunch === 0 ? 'Launch day!' : `Day ${daysSinceLaunch + 1}`,
+                    monthlyViews: 'Analytics active'
                 };
             }
             
@@ -125,9 +125,14 @@ class PrivacyCounter {
             // Show a meaningful fallback while API gets ready
             const daysSinceLaunch = Math.floor((Date.now() - new Date('2025-08-18').getTime()) / (1000 * 60 * 60 * 24));
             
+            // Show a realistic launch status
+            const today = new Date();
+            const launchDate = new Date('2025-08-18');
+            const daysSinceLaunch = Math.floor((today - launchDate) / (1000 * 60 * 60 * 24));
+            
             return {
-                totalViews: daysSinceLaunch > 0 ? `Day ${daysSinceLaunch}` : 'Just launched!',
-                monthlyViews: 'Tracking started'
+                totalViews: daysSinceLaunch === 0 ? 'Launch day!' : `Day ${daysSinceLaunch + 1}`,
+                monthlyViews: 'Analytics active'
             };
         }
     }
