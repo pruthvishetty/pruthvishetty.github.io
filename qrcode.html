@@ -707,45 +707,7 @@
         </div>
     </div>
 
-    <!-- QR Code Library - Multiple CDN sources -->
-    <script>
-        // Try multiple CDN sources for QRCode library
-        function loadQRCodeLibrary() {
-            const cdnSources = [
-                'https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js',
-                'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js'
-            ];
-            
-            let currentIndex = 0;
-            
-            function tryNextCDN() {
-                if (currentIndex >= cdnSources.length) {
-                    console.error('All QRCode CDNs failed to load');
-                    showFeedback('Unable to load QR Code library. Please check your internet connection and refresh the page.', 'error');
-                    return;
-                }
-                
-                const script = document.createElement('script');
-                script.src = cdnSources[currentIndex];
-                script.onload = function() {
-                    console.log(`QRCode library loaded successfully from: ${cdnSources[currentIndex]}`);
-                };
-                script.onerror = function() {
-                    console.log(`Failed to load from: ${cdnSources[currentIndex]}`);
-                    currentIndex++;
-                    tryNextCDN();
-                };
-                
-                document.head.appendChild(script);
-            }
-            
-            tryNextCDN();
-        }
-        
-        // Start loading immediately
-        loadQRCodeLibrary();
-    </script>
+    <!-- QR Code Generation using API Service (No external JS library needed) -->
 
     <script>
         let currentTheme = 'light';
@@ -851,7 +813,7 @@
             }
         }
 
-        // Generate QR code
+        // Generate QR code using QR Server API (no external library needed)
         async function generateQR() {
             const data = getQRData();
             
@@ -860,47 +822,50 @@
                 return;
             }
 
-            // Check if QRCode library is loaded
-            if (typeof QRCode === 'undefined') {
-                showFeedback('QR Code library is loading... Please try again in a moment.', 'error');
-                return;
-            }
-
             try {
                 const size = parseInt(document.getElementById('qrSize').value);
                 const errorCorrectionLevel = document.getElementById('errorCorrection').value;
-                const foregroundColor = document.getElementById('foregroundColor').value;
-                const backgroundColor = document.getElementById('backgroundColor').value;
+                const foregroundColor = document.getElementById('foregroundColor').value.replace('#', '');
+                const backgroundColor = document.getElementById('backgroundColor').value.replace('#', '');
 
                 // Clear previous QR code
-                document.getElementById('qrcode').innerHTML = '';
+                const qrContainer = document.getElementById('qrcode');
+                qrContainer.innerHTML = '';
 
-                // Generate QR code
-                const options = {
-                    width: size,
-                    height: size,
-                    errorCorrectionLevel: errorCorrectionLevel,
-                    color: {
-                        dark: foregroundColor,
-                        light: backgroundColor
-                    },
-                    margin: 2
+                // Generate QR code using QR Server API
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&color=${foregroundColor}&bgcolor=${backgroundColor}&ecc=${errorCorrectionLevel}`;
+                
+                // Create image element
+                const img = document.createElement('img');
+                img.src = qrUrl;
+                img.alt = 'Generated QR Code';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.border = '1px solid var(--border-color)';
+                img.style.borderRadius = '8px';
+                
+                // Handle image load success
+                img.onload = function() {
+                    qrContainer.appendChild(img);
+                    
+                    // Update UI
+                    document.getElementById('qr-placeholder').style.display = 'none';
+                    document.getElementById('qr-result').style.display = 'block';
+                    
+                    // Update stats
+                    document.getElementById('qr-size-stat').textContent = size;
+                    document.getElementById('qr-data-length').textContent = data.length;
+                    document.getElementById('qr-data-preview').textContent = 
+                        data.length > 100 ? data.substring(0, 100) + '...' : data;
+                    
+                    currentQRCode = data;
+                    showFeedback('QR code generated successfully!');
                 };
-
-                await QRCode.toCanvas(document.getElementById('qrcode'), data, options);
                 
-                // Update UI
-                document.getElementById('qr-placeholder').style.display = 'none';
-                document.getElementById('qr-result').style.display = 'block';
-                
-                // Update stats
-                document.getElementById('qr-size-stat').textContent = size;
-                document.getElementById('qr-data-length').textContent = data.length;
-                document.getElementById('qr-data-preview').textContent = 
-                    data.length > 100 ? data.substring(0, 100) + '...' : data;
-                
-                currentQRCode = data;
-                showFeedback('QR code generated successfully!');
+                // Handle image load error
+                img.onerror = function() {
+                    showFeedback('Failed to generate QR code. Please try again.', 'error');
+                };
                 
             } catch (error) {
                 console.error('QR generation error:', error);
@@ -908,7 +873,7 @@
             }
         }
 
-        // Download QR code
+        // Download QR code using API service
         async function downloadQR(format) {
             if (!currentQRCode) {
                 showFeedback('Generate a QR code first', 'error');
@@ -918,52 +883,30 @@
             try {
                 const size = parseInt(document.getElementById('qrSize').value);
                 const errorCorrectionLevel = document.getElementById('errorCorrection').value;
-                const foregroundColor = document.getElementById('foregroundColor').value;
-                const backgroundColor = document.getElementById('backgroundColor').value;
+                const foregroundColor = document.getElementById('foregroundColor').value.replace('#', '');
+                const backgroundColor = document.getElementById('backgroundColor').value.replace('#', '');
                 const data = getQRData();
 
-                const options = {
-                    width: size,
-                    height: size,
-                    errorCorrectionLevel: errorCorrectionLevel,
-                    color: {
-                        dark: foregroundColor,
-                        light: backgroundColor
-                    },
-                    margin: 2
-                };
-
-                let dataURL;
+                let downloadUrl;
                 const filename = `qrcode-${Date.now()}.${format}`;
 
                 if (format === 'svg') {
-                    dataURL = await QRCode.toString(data, { ...options, type: 'svg' });
-                    const blob = new Blob([dataURL], { type: 'image/svg+xml' });
-                    dataURL = URL.createObjectURL(blob);
+                    downloadUrl = `https://api.qrserver.com/v1/create-qr-code/?format=svg&size=${size}x${size}&data=${encodeURIComponent(data)}&color=${foregroundColor}&bgcolor=${backgroundColor}&ecc=${errorCorrectionLevel}`;
                 } else {
-                    const canvas = document.createElement('canvas');
-                    await QRCode.toCanvas(canvas, data, options);
-                    
-                    if (format === 'jpg') {
-                        dataURL = canvas.toDataURL('image/jpeg', 0.9);
-                    } else {
-                        dataURL = canvas.toDataURL('image/png');
-                    }
+                    const imageFormat = format === 'jpg' ? 'jpg' : 'png';
+                    downloadUrl = `https://api.qrserver.com/v1/create-qr-code/?format=${imageFormat}&size=${size}x${size}&data=${encodeURIComponent(data)}&color=${foregroundColor}&bgcolor=${backgroundColor}&ecc=${errorCorrectionLevel}`;
                 }
 
                 // Create download link
                 const link = document.createElement('a');
                 link.download = filename;
-                link.href = dataURL;
+                link.href = downloadUrl;
+                link.target = '_blank'; // Open in new tab to trigger download
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
 
-                if (format === 'svg') {
-                    URL.revokeObjectURL(dataURL);
-                }
-
-                showFeedback(`QR code downloaded as ${format.toUpperCase()}!`);
+                showFeedback(`QR code download started as ${format.toUpperCase()}!`);
 
             } catch (error) {
                 console.error('Download error:', error);
@@ -979,22 +922,50 @@
             }
 
             try {
-                const canvas = document.getElementById('qrcode').querySelector('canvas');
+                const img = document.getElementById('qrcode').querySelector('img');
                 
-                if (canvas) {
-                    canvas.toBlob(async (blob) => {
-                        try {
-                            await navigator.clipboard.write([
-                                new ClipboardItem({ 'image/png': blob })
-                            ]);
-                            showFeedback('QR code copied to clipboard!');
-                        } catch (error) {
-                            console.error('Clipboard error:', error);
-                            showFeedback('Could not copy to clipboard', 'error');
-                        }
-                    });
+                if (img) {
+                    // Convert image to canvas for clipboard
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    
+                    img.onload = function() {
+                        ctx.drawImage(img, 0, 0);
+                        
+                        canvas.toBlob(async (blob) => {
+                            try {
+                                await navigator.clipboard.write([
+                                    new ClipboardItem({ 'image/png': blob })
+                                ]);
+                                showFeedback('QR code copied to clipboard!');
+                            } catch (error) {
+                                console.error('Clipboard error:', error);
+                                showFeedback('Could not copy to clipboard', 'error');
+                            }
+                        });
+                    };
+                    
+                    // If image already loaded
+                    if (img.complete) {
+                        ctx.drawImage(img, 0, 0);
+                        
+                        canvas.toBlob(async (blob) => {
+                            try {
+                                await navigator.clipboard.write([
+                                    new ClipboardItem({ 'image/png': blob })
+                                ]);
+                                showFeedback('QR code copied to clipboard!');
+                            } catch (error) {
+                                console.error('Clipboard error:', error);
+                                showFeedback('Could not copy to clipboard', 'error');
+                            }
+                        });
+                    }
                 } else {
-                    showFeedback('No QR code canvas found', 'error');
+                    showFeedback('No QR code image found', 'error');
                 }
             } catch (error) {
                 console.error('Copy error:', error);
@@ -1081,30 +1052,8 @@
             console.log('Examples loaded:', examples);
         }
 
-        // Wait for QRCode library to load with better feedback
-        function waitForQRCode(callback, maxTries = 100) {
-            if (typeof QRCode !== 'undefined') {
-                callback();
-                showFeedback('QR Code library loaded successfully!');
-            } else if (maxTries > 0) {
-                setTimeout(() => waitForQRCode(callback, maxTries - 1), 100);
-            } else {
-                console.error('QRCode library failed to load after 10 seconds');
-                showFeedback('QR Code library failed to load. Please refresh the page or check your internet connection.', 'error');
-            }
-        }
-        
-        // Enhanced generate function with better library checking
+        // Enhanced generate function (now just calls generateQR directly)
         async function generateQREnhanced() {
-            if (typeof QRCode === 'undefined') {
-                showFeedback('QR Code library is still loading... Please wait a moment.', 'error');
-                // Try to wait for it
-                waitForQRCode(() => {
-                    generateQR();
-                });
-                return;
-            }
-            
             generateQR();
         }
 
@@ -1114,19 +1063,15 @@
             setupAutoGenerate();
             loadExamples();
             
-            // Check if QRCode library loaded and show status
-            waitForQRCode(() => {
-                console.log('QRCode library loaded successfully');
-                // Update placeholder to show ready state
-                const placeholder = document.getElementById('qr-placeholder');
-                if (placeholder) {
-                    placeholder.innerHTML = `
-                        <i class="fas fa-qrcode"></i>
-                        <p>QR code will appear here</p>
-                        <p style="font-size: 0.8rem; color: var(--success-color);">✅ Ready to generate QR codes</p>
-                    `;
-                }
-            });
+            // Update placeholder to show ready state (no library loading needed)
+            const placeholder = document.getElementById('qr-placeholder');
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <i class="fas fa-qrcode"></i>
+                    <p>QR code will appear here</p>
+                    <p style="font-size: 0.8rem; color: var(--success-color);">✅ Ready to generate QR codes</p>
+                `;
+            }
             
             // Add keyboard shortcuts
             document.addEventListener('keydown', function(e) {
