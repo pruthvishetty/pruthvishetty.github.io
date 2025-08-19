@@ -507,7 +507,7 @@
             QR Generator
         </div>
         <div class="header-controls">
-            <button class="btn utility-btn" onclick="generateQR()">
+            <button class="btn utility-btn" onclick="generateQREnhanced()">
                 <i class="fas fa-magic"></i> Generate
             </button>
             <button class="btn utility-btn" onclick="clearAll()">
@@ -707,20 +707,44 @@
         </div>
     </div>
 
-    <!-- QR Code Library with fallback -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" 
-            onerror="loadQRCodeFallback()"></script>
+    <!-- QR Code Library - Multiple CDN sources -->
     <script>
-        function loadQRCodeFallback() {
-            console.log('Primary QRCode CDN failed, trying fallback...');
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js';
-            script.onerror = function() {
-                console.error('All QRCode CDNs failed');
-                showFeedback('QR Code library failed to load. Please check your internet connection and refresh.', 'error');
-            };
-            document.head.appendChild(script);
+        // Try multiple CDN sources for QRCode library
+        function loadQRCodeLibrary() {
+            const cdnSources = [
+                'https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js',
+                'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js'
+            ];
+            
+            let currentIndex = 0;
+            
+            function tryNextCDN() {
+                if (currentIndex >= cdnSources.length) {
+                    console.error('All QRCode CDNs failed to load');
+                    showFeedback('Unable to load QR Code library. Please check your internet connection and refresh the page.', 'error');
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = cdnSources[currentIndex];
+                script.onload = function() {
+                    console.log(`QRCode library loaded successfully from: ${cdnSources[currentIndex]}`);
+                };
+                script.onerror = function() {
+                    console.log(`Failed to load from: ${cdnSources[currentIndex]}`);
+                    currentIndex++;
+                    tryNextCDN();
+                };
+                
+                document.head.appendChild(script);
+            }
+            
+            tryNextCDN();
         }
+        
+        // Start loading immediately
+        loadQRCodeLibrary();
     </script>
 
     <script>
@@ -1035,7 +1059,7 @@
             const inputs = document.querySelectorAll('input, textarea, select');
             inputs.forEach(input => {
                 input.addEventListener('input', () => {
-                    if (currentQRCode) {
+                    if (currentQRCode && typeof QRCode !== 'undefined') {
                         setTimeout(generateQR, 300); // Debounce
                     }
                 });
@@ -1057,16 +1081,31 @@
             console.log('Examples loaded:', examples);
         }
 
-        // Wait for QRCode library to load
-        function waitForQRCode(callback, maxTries = 50) {
+        // Wait for QRCode library to load with better feedback
+        function waitForQRCode(callback, maxTries = 100) {
             if (typeof QRCode !== 'undefined') {
                 callback();
+                showFeedback('QR Code library loaded successfully!');
             } else if (maxTries > 0) {
                 setTimeout(() => waitForQRCode(callback, maxTries - 1), 100);
             } else {
-                console.error('QRCode library failed to load');
-                showFeedback('QR Code library failed to load. Please refresh the page.', 'error');
+                console.error('QRCode library failed to load after 10 seconds');
+                showFeedback('QR Code library failed to load. Please refresh the page or check your internet connection.', 'error');
             }
+        }
+        
+        // Enhanced generate function with better library checking
+        async function generateQREnhanced() {
+            if (typeof QRCode === 'undefined') {
+                showFeedback('QR Code library is still loading... Please wait a moment.', 'error');
+                // Try to wait for it
+                waitForQRCode(() => {
+                    generateQR();
+                });
+                return;
+            }
+            
+            generateQR();
         }
 
         // Initialize
@@ -1075,9 +1114,18 @@
             setupAutoGenerate();
             loadExamples();
             
-            // Check if QRCode library loaded
+            // Check if QRCode library loaded and show status
             waitForQRCode(() => {
                 console.log('QRCode library loaded successfully');
+                // Update placeholder to show ready state
+                const placeholder = document.getElementById('qr-placeholder');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <i class="fas fa-qrcode"></i>
+                        <p>QR code will appear here</p>
+                        <p style="font-size: 0.8rem; color: var(--success-color);">✅ Ready to generate QR codes</p>
+                    `;
+                }
             });
             
             // Add keyboard shortcuts
@@ -1086,7 +1134,7 @@
                     switch(e.key) {
                         case 'Enter':
                             e.preventDefault();
-                            generateQR();
+                            generateQREnhanced();
                             break;
                         case 'k':
                             e.preventDefault();
