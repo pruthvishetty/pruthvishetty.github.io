@@ -832,5 +832,24 @@ Example:
             });
         });
     </script>
+    <script src="js/privacy-counter.js"></script>
+    
+    <!-- GoatCounter Analytics (Privacy-First) -->
+    <script data-goatcounter="https://pruthvishetty.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+    
+    <script>
+        // Initialize privacy counter for JSONViz
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add counter container to the output status area
+            const outputStatus = document.querySelector('.status-bar');
+            if (outputStatus) {
+                outputStatus.insertAdjacentHTML('afterend', '<div id="jsonviz-counter"></div>');
+            }
+            
+            // Initialize counter
+            const counter = new PrivacyCounter('jsonviz', 'jsonviz-counter');
+        });
+    </script>
 </body>
 </html>

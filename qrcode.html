@@ -1061,5 +1061,24 @@
             });
         });
     </script>
+    <script src="js/privacy-counter.js"></script>
+    
+    <!-- GoatCounter Analytics (Privacy-First) -->
+    <script data-goatcounter="https://pruthvishetty.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+    
+    <script>
+        // Initialize privacy counter for QR Generator
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add counter container after the header
+            const header = document.querySelector('.header');
+            if (header) {
+                header.insertAdjacentHTML('afterend', '<div id="qrcode-counter"></div>');
+            }
+            
+            // Initialize counter
+            const counter = new PrivacyCounter('qrcode', 'qrcode-counter');
+        });
+    </script>
 </body>
 </html>
