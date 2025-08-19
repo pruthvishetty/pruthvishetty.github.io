@@ -707,8 +707,21 @@
         </div>
     </div>
 
-    <!-- QR Code Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+    <!-- QR Code Library with fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" 
+            onerror="loadQRCodeFallback()"></script>
+    <script>
+        function loadQRCodeFallback() {
+            console.log('Primary QRCode CDN failed, trying fallback...');
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js';
+            script.onerror = function() {
+                console.error('All QRCode CDNs failed');
+                showFeedback('QR Code library failed to load. Please check your internet connection and refresh.', 'error');
+            };
+            document.head.appendChild(script);
+        }
+    </script>
 
     <script>
         let currentTheme = 'light';
@@ -820,6 +833,12 @@
             
             if (!data.trim()) {
                 showFeedback('Please enter some data to generate QR code', 'error');
+                return;
+            }
+
+            // Check if QRCode library is loaded
+            if (typeof QRCode === 'undefined') {
+                showFeedback('QR Code library is loading... Please try again in a moment.', 'error');
                 return;
             }
 
@@ -1038,11 +1057,28 @@
             console.log('Examples loaded:', examples);
         }
 
+        // Wait for QRCode library to load
+        function waitForQRCode(callback, maxTries = 50) {
+            if (typeof QRCode !== 'undefined') {
+                callback();
+            } else if (maxTries > 0) {
+                setTimeout(() => waitForQRCode(callback, maxTries - 1), 100);
+            } else {
+                console.error('QRCode library failed to load');
+                showFeedback('QR Code library failed to load. Please refresh the page.', 'error');
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadTheme();
             setupAutoGenerate();
             loadExamples();
+            
+            // Check if QRCode library loaded
+            waitForQRCode(() => {
+                console.log('QRCode library loaded successfully');
+            });
             
             // Add keyboard shortcuts
             document.addEventListener('keydown', function(e) {
