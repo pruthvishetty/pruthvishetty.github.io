@@ -930,10 +930,16 @@ Practice regularly, read widely, and never stop learning. Every word you write i
     <script>
         // Initialize privacy counter for TextAnalyzer
         document.addEventListener('DOMContentLoaded', function() {
-            // Add counter container after the header
-            const header = document.querySelector('.header');
-            if (header) {
-                header.insertAdjacentHTML('afterend', '<div id="textanalyzer-counter"></div>');
+            // Add counter button to header controls
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls) {
+                // Insert before theme toggle
+                const themeToggle = headerControls.querySelector('.theme-toggle');
+                if (themeToggle) {
+                    themeToggle.insertAdjacentHTML('beforebegin', '<div id="textanalyzer-counter"></div>');
+                } else {
+                    headerControls.insertAdjacentHTML('beforeend', '<div id="textanalyzer-counter"></div>');
+                }
             }
             
             // Initialize counter

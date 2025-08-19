@@ -162,8 +162,17 @@ class PrivacyCounter {
         const stats = this.getPersonalStats();
         const message = this.getEncouragingMessage(stats.usage);
         
+        // Create a subtle stats button for the header
+        const statsButtonHTML = `
+            <button class="btn utility-btn btn-secondary stats-toggle" onclick="toggleStats('${this.toolName}')" title="View usage statistics">
+                <i class="fas fa-chart-bar"></i>
+                <span class="usage-count-short">${stats.usage}</span>
+            </button>
+        `;
+        
+        // Create the expandable stats panel (hidden by default)
         const statsHTML = `
-            <div class="privacy-counter-stats">
+            <div class="privacy-counter-stats" id="stats-panel-${this.toolName}" style="display: none;">
                 <div class="personal-stats">
                     <div class="usage-message">${message}</div>
                     <div class="usage-details">
@@ -184,7 +193,14 @@ class PrivacyCounter {
             </div>
         `;
         
-        element.innerHTML = statsHTML;
+        // Add button to header and panel below header
+        element.innerHTML = statsButtonHTML;
+        
+        // Add the stats panel after the header
+        const header = document.querySelector('.header');
+        if (header && !document.getElementById(`stats-panel-${this.toolName}`)) {
+            header.insertAdjacentHTML('afterend', statsHTML);
+        }
     }
 
     displayGitHubStats(stats) {
@@ -249,8 +265,28 @@ const counterStyles = `
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 8px;
     padding: 1rem;
-    margin: 1rem 0;
+    margin: 0;
     font-family: 'Open Sans', sans-serif;
+    box-shadow: var(--shadow, 0 2px 10px rgba(0,0,0,0.1));
+    position: relative;
+    z-index: 90;
+}
+
+.stats-toggle {
+    position: relative;
+    min-width: auto !important;
+    padding: 0.5rem 0.75rem !important;
+}
+
+.stats-toggle.active {
+    background-color: var(--accent-color, #007bff) !important;
+    color: white !important;
+}
+
+.usage-count-short {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    margin-left: 0.25rem;
 }
 
 .personal-stats {
@@ -368,9 +404,27 @@ if (typeof document !== 'undefined') {
     document.head.insertAdjacentHTML('beforeend', counterStyles);
 }
 
+// Toggle stats panel function
+function toggleStats(toolName) {
+    const panel = document.getElementById(`stats-panel-${toolName}`);
+    const button = document.querySelector('.stats-toggle');
+    
+    if (panel) {
+        if (panel.style.display === 'none' || !panel.style.display) {
+            panel.style.display = 'block';
+            panel.style.animation = 'slideDown 0.3s ease';
+            if (button) button.classList.add('active');
+        } else {
+            panel.style.display = 'none';
+            if (button) button.classList.remove('active');
+        }
+    }
+}
+
 // Export for use in tools
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PrivacyCounter;
 } else if (typeof window !== 'undefined') {
     window.PrivacyCounter = PrivacyCounter;
+    window.toggleStats = toggleStats; // Make toggle function globally available
 }

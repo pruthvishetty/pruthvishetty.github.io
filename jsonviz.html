@@ -841,10 +841,16 @@ Example:
     <script>
         // Initialize privacy counter for JSONViz
         document.addEventListener('DOMContentLoaded', function() {
-            // Add counter container to the output status area
-            const outputStatus = document.querySelector('.status-bar');
-            if (outputStatus) {
-                outputStatus.insertAdjacentHTML('afterend', '<div id="jsonviz-counter"></div>');
+            // Add counter button to header controls
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls) {
+                // Insert before theme toggle
+                const themeToggle = headerControls.querySelector('.theme-toggle');
+                if (themeToggle) {
+                    themeToggle.insertAdjacentHTML('beforebegin', '<div id="jsonviz-counter"></div>');
+                } else {
+                    headerControls.insertAdjacentHTML('beforeend', '<div id="jsonviz-counter"></div>');
+                }
             }
             
             // Initialize counter
