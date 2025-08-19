@@ -88,14 +88,14 @@ class PrivacyCounter {
             // Get total unique visitors (all time)
             const totalResponse = await fetch(`https://${siteCode}.goatcounter.com/api/v0/stats/total`, {
                 headers: {
-                    'Authorization': 'Bearer YOUR_API_TOKEN' // You'll need to get this from GoatCounter
+                    'Authorization': 'Bearer 1ajve78q3o9221beewtg1cnria1asxb4eu5hxz61rwkul2kgnrtd'
                 }
             });
             
             // Get monthly visitors
             const monthlyResponse = await fetch(`https://${siteCode}.goatcounter.com/api/v0/stats/hits?period=month`, {
                 headers: {
-                    'Authorization': 'Bearer YOUR_API_TOKEN'
+                    'Authorization': 'Bearer 1ajve78q3o9221beewtg1cnria1asxb4eu5hxz61rwkul2kgnrtd'
                 }
             });
             
