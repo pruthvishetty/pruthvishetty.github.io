@@ -876,7 +876,7 @@
             }
         }
 
-        // Download QR code using API service
+        // Download QR code using API service with proper download
         async function downloadQR(format) {
             if (!currentQRCode) {
                 showFeedback('Generate a QR code first', 'error');
@@ -900,20 +900,40 @@
                     downloadUrl = `https://api.qrserver.com/v1/create-qr-code/?format=${imageFormat}&size=${size}x${size}&data=${encodeURIComponent(data)}&color=${foregroundColor}&bgcolor=${backgroundColor}&ecc=${errorCorrectionLevel}`;
                 }
 
-                // Create download link
+                // Fetch the image data and create a proper download
+                showFeedback('Preparing download...', 'info');
+                
+                const response = await fetch(downloadUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch QR code image');
+                }
+                
+                const blob = await response.blob();
+                
+                // Create object URL for the blob
+                const blobUrl = URL.createObjectURL(blob);
+                
+                // Create download link with proper MIME type
                 const link = document.createElement('a');
                 link.download = filename;
-                link.href = downloadUrl;
-                link.target = '_blank'; // Open in new tab to trigger download
+                link.href = blobUrl;
+                link.style.display = 'none';
+                
+                // Add to DOM, click, and remove
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                
+                // Clean up the blob URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(blobUrl);
+                }, 1000);
 
-                showFeedback(`QR code download started as ${format.toUpperCase()}!`);
+                showFeedback(`QR code downloaded as ${format.toUpperCase()}!`);
 
             } catch (error) {
                 console.error('Download error:', error);
-                showFeedback('Error downloading QR code', 'error');
+                showFeedback('Download failed. You can right-click the QR code and "Save image as..." instead.', 'error');
             }
         }
 
@@ -1022,6 +1042,8 @@
             
             if (type === 'error') {
                 feedback.style.backgroundColor = 'var(--error-color)';
+            } else if (type === 'info') {
+                feedback.style.backgroundColor = 'var(--info-color)';
             }
             
             document.body.appendChild(feedback);
