@@ -700,6 +700,9 @@
                             <button class="btn btn-secondary" onclick="copyQRToClipboard()">
                                 <i class="fas fa-copy"></i> Copy Image
                             </button>
+                            <button class="btn btn-secondary" onclick="copyQRData()">
+                                <i class="fas fa-clipboard"></i> Copy Data
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -924,52 +927,55 @@
             try {
                 const img = document.getElementById('qrcode').querySelector('img');
                 
-                if (img) {
-                    // Convert image to canvas for clipboard
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                    
-                    img.onload = function() {
-                        ctx.drawImage(img, 0, 0);
-                        
-                        canvas.toBlob(async (blob) => {
-                            try {
-                                await navigator.clipboard.write([
-                                    new ClipboardItem({ 'image/png': blob })
-                                ]);
-                                showFeedback('QR code copied to clipboard!');
-                            } catch (error) {
-                                console.error('Clipboard error:', error);
-                                showFeedback('Could not copy to clipboard', 'error');
-                            }
-                        });
-                    };
-                    
-                    // If image already loaded
-                    if (img.complete) {
-                        ctx.drawImage(img, 0, 0);
-                        
-                        canvas.toBlob(async (blob) => {
-                            try {
-                                await navigator.clipboard.write([
-                                    new ClipboardItem({ 'image/png': blob })
-                                ]);
-                                showFeedback('QR code copied to clipboard!');
-                            } catch (error) {
-                                console.error('Clipboard error:', error);
-                                showFeedback('Could not copy to clipboard', 'error');
-                            }
-                        });
+                if (img && img.complete) {
+                    // For API-generated images, we'll copy the URL since CORS may prevent canvas conversion
+                    try {
+                        // Try to copy image URL first (works in most browsers)
+                        await navigator.clipboard.writeText(img.src);
+                        showFeedback('QR code URL copied! You can paste this link to view the QR code.');
+                    } catch (error) {
+                        // Fallback: copy the QR data as text
+                        try {
+                            await navigator.clipboard.writeText(currentQRCode);
+                            showFeedback('QR code data copied as text!');
+                        } catch (textError) {
+                            showFeedback('Copy failed. Try the "Copy Data" button or download instead.', 'error');
+                        }
                     }
+                    
+                } else if (img && !img.complete) {
+                    // Wait for image to load, then copy
+                    img.onload = function() {
+                        copyQRToClipboard();
+                    };
                 } else {
-                    showFeedback('No QR code image found', 'error');
+                    showFeedback('No QR code generated yet', 'error');
                 }
             } catch (error) {
                 console.error('Copy error:', error);
-                showFeedback('Error copying QR code', 'error');
+                // Fallback: copy the QR data as text
+                try {
+                    await navigator.clipboard.writeText(currentQRCode);
+                    showFeedback('QR code data copied as text!');
+                } catch (textError) {
+                    showFeedback('Copy failed. Try downloading the QR code instead.', 'error');
+                }
+            }
+        }
+
+        // Copy QR code data as text (simple fallback)
+        async function copyQRData() {
+            if (!currentQRCode) {
+                showFeedback('Generate a QR code first', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(currentQRCode);
+                showFeedback('QR code data copied to clipboard!');
+            } catch (error) {
+                console.error('Copy data error:', error);
+                showFeedback('Could not copy to clipboard', 'error');
             }
         }
 
