@@ -74,12 +74,57 @@ const PoemsManager = {
     const loadingState = document.getElementById('loadingState');
     if (loadingState) loadingState.classList.add('active');
 
-    // Use embedded poems if available
-    if (typeof poemsData !== 'undefined' && poemsData.length > 0) {
-      this.poems = poemsData.map(poem => ({
-        ...poem,
-        readingTime: Math.ceil(poem.content.split(/\s+/).length / 150) // Slower reading for poetry
-      }));
+    // Load poems from markdown files
+    if (typeof poemsFiles !== 'undefined' && poemsFiles.length > 0) {
+      const poemPromises = poemsFiles.map(async (filename) => {
+        try {
+          const response = await fetch(`poems/${filename}`);
+          const text = await response.text();
+
+          // Parse frontmatter
+          const frontmatterMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+
+          if (frontmatterMatch) {
+            const frontmatter = frontmatterMatch[1];
+            const content = frontmatterMatch[2];
+
+            // Parse YAML frontmatter
+            const metadata = {};
+            frontmatter.split('\n').forEach(line => {
+              const [key, ...valueParts] = line.split(':');
+              if (key && valueParts.length > 0) {
+                metadata[key.trim()] = valueParts.join(':').trim();
+              }
+            });
+
+            return {
+              filename: filename,
+              title: metadata.title || 'Untitled',
+              date: metadata.date || new Date().toISOString().split('T')[0],
+              author: metadata.author || 'Pruthvi Shetty',
+              theme: metadata.theme || '',
+              content: content.trim(),
+              readingTime: Math.ceil(content.split(/\s+/).length / 150)
+            };
+          }
+
+          // If no frontmatter, use the whole content
+          return {
+            filename: filename,
+            title: filename.replace('.md', '').replace(/-/g, ' '),
+            date: new Date().toISOString().split('T')[0],
+            author: 'Pruthvi Shetty',
+            theme: '',
+            content: text.trim(),
+            readingTime: Math.ceil(text.split(/\s+/).length / 150)
+          };
+        } catch (error) {
+          console.error(`Error loading poem ${filename}:`, error);
+          return null;
+        }
+      });
+
+      this.poems = (await Promise.all(poemPromises)).filter(poem => poem !== null);
     }
 
     // Sort by date - chronological (newest first)
