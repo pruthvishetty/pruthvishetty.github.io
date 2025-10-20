@@ -681,12 +681,60 @@ footer {
 }
 
 /* Smooth transitions for all themed elements */
-body, 
+body,
 #work-experience .col-md-4,
 .company-logo,
 #work-experience h4,
 .location-time,
 #work-experience p,
 #intro-text {
+  transition: all 0.3s ease;
+}
+
+/* Show More/Less Button Styles */
+.show-more-container {
+  text-align: center;
+  margin: 3rem 0 2rem;
+  padding: 0 2rem;
+}
+
+.show-more-btn {
+  background: var(--primary-color);
+  color: var(--secondary-color);
+  border: 2px solid var(--text-color);
+  padding: 0.75rem 2rem;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.show-more-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+.show-more-btn:focus {
+  outline: none;
+}
+
+.show-more-btn i {
+  font-size: 0.875rem;
+  transition: transform 0.3s ease;
+}
+
+.show-more-btn.expanded i {
+  transform: rotate(180deg);
+}
+
+/* Ensure hidden items collapse smoothly */
+.hidden-item {
   transition: all 0.3s ease;
 }

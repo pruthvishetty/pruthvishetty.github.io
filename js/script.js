@@ -213,5 +213,71 @@ window.onload = function() {
     frame.contentWindow.addEventListener('contextmenu', function(e) {
         e.preventDefault();
     }, false);
+
+    // Initialize show more/less functionality
+    initializeShowMore();
+}
+
+// Show More/Less functionality for sections with many items
+function initializeShowMore() {
+  const sections = document.querySelectorAll('section#work-experience, section#hackathons, section#research');
+
+  sections.forEach(section => {
+    const container = section.querySelector('.container');
+    if (!container) return;
+
+    const items = container.querySelectorAll('.col-md-4');
+    const itemsPerRow = 3;
+    const rowsToShow = 2;
+    const itemsToShow = itemsPerRow * rowsToShow; // Show 6 items (2 rows)
+
+    if (items.length <= itemsToShow) return; // No need for show more if 6 or fewer items
+
+    // Hide items beyond the 6th
+    items.forEach((item, index) => {
+      if (index >= itemsToShow) {
+        item.style.display = 'none';
+        item.classList.add('hidden-item');
+      }
+    });
+
+    // Create show more button
+    const showMoreBtn = document.createElement('div');
+    showMoreBtn.className = 'show-more-container';
+    showMoreBtn.innerHTML = `
+      <button class="show-more-btn">
+        <span class="show-more-text">Show More</span>
+        <i class="fas fa-chevron-down"></i>
+      </button>
+    `;
+
+    // Insert button after the container
+    section.appendChild(showMoreBtn);
+
+    // Add click handler
+    const btn = showMoreBtn.querySelector('.show-more-btn');
+    btn.addEventListener('click', function() {
+      const hiddenItems = container.querySelectorAll('.hidden-item');
+      const isExpanded = btn.classList.contains('expanded');
+
+      if (isExpanded) {
+        // Collapse
+        hiddenItems.forEach(item => {
+          item.style.display = 'none';
+        });
+        btn.classList.remove('expanded');
+        btn.querySelector('.show-more-text').textContent = 'Show More';
+        btn.querySelector('i').className = 'fas fa-chevron-down';
+      } else {
+        // Expand
+        hiddenItems.forEach(item => {
+          item.style.display = 'block';
+        });
+        btn.classList.add('expanded');
+        btn.querySelector('.show-more-text').textContent = 'Show Less';
+        btn.querySelector('i').className = 'fas fa-chevron-up';
+      }
+    });
+  });
 }
 
