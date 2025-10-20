@@ -142,16 +142,28 @@ const PoemsManager = {
   extractFirstVerse(content) {
     const lines = content.split('\n').filter(line => line.trim());
     const verseLines = [];
+    let foundFirstLine = false;
 
     for (let line of lines) {
       // Skip markdown headers
       if (line.startsWith('#')) continue;
       // Stop at horizontal rules
       if (line.trim() === '---') break;
-      // Collect italic lines (verses)
-      if (line.includes('*') || verseLines.length > 0) {
-        verseLines.push(line);
-        if (verseLines.length >= 4) break; // First stanza
+
+      // Start collecting after we skip the title
+      if (!foundFirstLine && line.trim().length > 0) {
+        foundFirstLine = true;
+      }
+
+      // Collect verse lines (skip empty lines at start)
+      if (foundFirstLine && line.trim().length > 0) {
+        verseLines.push(line.trim());
+        if (verseLines.length >= 4) break; // First stanza (4 lines)
+      }
+
+      // Stop after first empty line if we have some verses
+      if (foundFirstLine && line.trim().length === 0 && verseLines.length > 0) {
+        break;
       }
     }
 
