@@ -773,10 +773,36 @@ body {
   justify-content: center;
   gap: 1.5rem;
   flex-wrap: wrap;
+  align-items: center;
   font-family: var(--font-sans);
   font-size: 0.875rem;
   color: var(--text-muted);
   margin-top: 1.5rem;
+}
+
+.poem-share-btn {
+  background: var(--text-accent);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+}
+
+.poem-share-btn:hover {
+  background: var(--primary-sage);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(122, 157, 127, 0.3);
+}
+
+.poem-share-btn i {
+  font-size: 0.875rem;
 }
 
 .poem-author,

@@ -645,6 +645,33 @@ body {
   font-size: 0.925rem;
   padding-bottom: 2rem;
   border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.article-share-btn {
+  background: var(--primary-sage);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+  margin-left: auto;
+}
+
+.article-share-btn:hover {
+  background: var(--primary-lavender);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 157, 131, 0.3);
+}
+
+.article-share-btn i {
+  font-size: 0.875rem;
 }
 
 /* Article Typography */

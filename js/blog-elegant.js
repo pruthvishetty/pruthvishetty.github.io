@@ -11,6 +11,59 @@ const BlogManager = {
     await this.loadPosts();
     this.updateStats();
     this.render();
+    this.checkURLParams();
+  },
+
+  // Check URL parameters for direct post links
+  checkURLParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const postSlug = urlParams.get('post');
+
+    if (postSlug) {
+      // Find post by filename slug
+      const post = this.posts.find(p => p.filename.replace('.md', '') === postSlug);
+      if (post) {
+        // Update meta tags
+        this.updateMetaTags(post);
+        // Open the post
+        setTimeout(() => this.openArticle(post.filename), 100);
+      }
+    }
+  },
+
+  // Update meta tags for social sharing
+  updateMetaTags(post) {
+    const title = `${post.title} | Tokenized Thoughts`;
+    const description = post.excerpt || post.content.substring(0, 150).replace(/[#*]/g, '');
+    const url = `https://pruthvishetty.com/blog.html?post=${post.filename.replace('.md', '')}`;
+
+    // Update title
+    document.title = title;
+
+    // Update or create meta tags
+    this.setMetaTag('og:title', title);
+    this.setMetaTag('og:description', description);
+    this.setMetaTag('og:url', url);
+    this.setMetaTag('twitter:title', title);
+    this.setMetaTag('twitter:description', description);
+    this.setMetaTag('twitter:url', url);
+  },
+
+  // Helper to set meta tag
+  setMetaTag(property, content) {
+    let tag = document.querySelector(`meta[property="${property}"]`) ||
+              document.querySelector(`meta[name="${property}"]`);
+
+    if (!tag) {
+      tag = document.createElement('meta');
+      if (property.startsWith('og:')) {
+        tag.setAttribute('property', property);
+      } else {
+        tag.setAttribute('name', property);
+      }
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute('content', content);
   },
 
   // Setup event listeners
@@ -328,6 +381,9 @@ const BlogManager = {
       htmlContent = marked.parse(post.content);
     }
 
+    // Generate shareable URL
+    const shareUrl = `https://pruthvishetty.com/blog.html?post=${post.filename.replace('.md', '')}`;
+
     // Render article
     content.innerHTML = `
       <div class="article-header">
@@ -343,12 +399,21 @@ const BlogManager = {
           <span class="article-reading-time">
             <i class="far fa-clock"></i> ${post.readingTime} min read
           </span>
+          <button class="article-share-btn" onclick="BlogManager.shareArticle('${post.filename}')" title="Share this article">
+            <i class="fas fa-share-alt"></i>
+          </button>
         </div>
       </div>
       <div class="article-body">
         ${htmlContent}
       </div>
     `;
+
+    // Update URL without page reload
+    window.history.pushState({}, '', shareUrl);
+
+    // Update meta tags for sharing
+    this.updateMetaTags(post);
 
     // Show modal
     modal.classList.add('active');
@@ -359,6 +424,38 @@ const BlogManager = {
       content.querySelectorAll('pre code').forEach(block => {
         hljs.highlightElement(block);
       });
+    }
+  },
+
+  // Share article
+  async shareArticle(filename) {
+    const post = this.posts.find(p => p.filename === filename);
+    if (!post) return;
+
+    const shareUrl = `https://pruthvishetty.com/blog.html?post=${post.filename.replace('.md', '')}`;
+    const shareText = `${post.title} by Pruthvi Shetty`;
+
+    // Try native share API first
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: shareText,
+          url: shareUrl
+        });
+        return;
+      } catch (err) {
+        // User cancelled or API not available
+      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link copied to clipboard! Share it on your favorite platform.');
+    } catch (err) {
+      // Final fallback: show prompt
+      prompt('Copy this link to share:', shareUrl);
     }
   },
 
