@@ -8,5 +8,4 @@ const poemsFiles = [
   "the-generous-man.md",
   "convergence.md",
   "thread-count.md",
-  "digital-dreams.md",
 ];
