@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONViz - JSON Visualizer</title>
+    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --accent-color: #007bff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #404040;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+            --accent-color: #4dabf7;
+            --success-color: #51cf66;
+            --error-color: #ff6b6b;
+            --warning-color: #ffd43b;
+            --shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .logo i {
+            font-size: 1.8rem;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-primary);
+        }
+
+        .panel-header {
+            padding: 1rem;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .panel-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .input-panel {
+            border-right: 1px solid var(--border-color);
+        }
+
+        #jsonInput {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            resize: none;
+            transition: var(--transition);
+        }
+
+        #jsonInput::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        .output-container {
+            height: 100%;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .json-tree {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .json-key {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        .json-string {
+            color: var(--success-color);
+        }
+
+        .json-number {
+            color: #ff6b35;
+        }
+
+        .json-boolean {
+            color: #9c27b0;
+            font-weight: 500;
+        }
+
+        .json-null {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .json-bracket {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .json-item {
+            margin-left: 20px;
+            position: relative;
+        }
+
+        .json-item::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: var(--border-color);
+        }
+
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible:hover {
+            background-color: var(--bg-secondary);
+            border-radius: 3px;
+        }
+
+        .collapse-icon {
+            display: inline-block;
+            width: 12px;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+        }
+
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .error-message {
+            background-color: var(--error-color);
+            color: white;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-bar {
+            padding: 0.5rem 1rem;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-valid {
+            color: var(--success-color);
+        }
+
+        .status-invalid {
+            color: var(--error-color);
+        }
+
+        .utility-bar {
+            padding: 0.5rem 1rem;
+            background-color: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .utility-btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            border-radius: 4px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.8rem 1rem;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .main-container {
+                flex-direction: column;
+                height: calc(100vh - 70px);
+            }
+
+            .panel {
+                height: 50%;
+            }
+
+            .input-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            #jsonInput {
+                padding: 1rem;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .output-container {
+                padding: 1rem;
+            }
+
+            .utility-bar {
+                padding: 0.5rem;
+            }
+
+            .header-controls {
+                gap: 0.5rem;
+            }
+
+            .btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar styling */
+        .output-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .output-container::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .output-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .output-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="header">
+        <div class="logo">
+            <i class="fas fa-code-branch"></i>
+            JSONViz
+        </div>
+        <div class="header-controls">
+            <button class="btn utility-btn" onclick="formatJSON()">
+                <i class="fas fa-indent"></i> Format
+            </button>
+            <button class="btn utility-btn" onclick="minifyJSON()">
+                <i class="fas fa-compress"></i> Minify
+            </button>
+            <button class="btn utility-btn" onclick="copyToClipboard()">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+            <button class="btn utility-btn" onclick="clearAll()">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="panel input-panel">
+            <div class="panel-header">
+                <i class="fas fa-edit"></i> JSON Input
+            </div>
+            <div class="utility-bar">
+                <button class="btn utility-btn btn-secondary" onclick="loadSample()">
+                    <i class="fas fa-file-import"></i> Load Sample
+                </button>
+                <button class="btn utility-btn btn-secondary" onclick="validateJSON()">
+                    <i class="fas fa-check-circle"></i> Validate
+                </button>
+            </div>
+            <div class="panel-content">
+                <textarea 
+                    id="jsonInput" 
+                    placeholder='Paste your JSON here...
+
+Example:
+{
+  "name": "JSONViz",
+  "version": "1.0.0",
+  "features": ["validation", "formatting", "visualization"],
+  "privacy": true,
+  "clientSide": true
+}'
+                    oninput="parseJSON()"
+                ></textarea>
+            </div>
+            <div class="status-bar">
+                <span id="inputStatus">Ready to parse JSON</span>
+                <span id="charCount">0 characters</span>
+            </div>
+        </div>
+
+        <div class="panel output-panel">
+            <div class="panel-header">
+                <i class="fas fa-sitemap"></i> JSON Visualization
+            </div>
+            <div class="panel-content">
+                <div class="output-container">
+                    <div id="jsonOutput" class="json-tree">
+                        <div style="text-align: center; color: var(--text-secondary); margin-top: 2rem;">
+                            <i class="fas fa-arrow-left" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>Enter JSON data to see the visualization</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="status-bar">
+                <span id="outputStatus">No data</span>
+                <span id="nodeCount">0 nodes</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTheme = 'light';
+        let jsonData = null;
+        let parseTimeout = null;
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', currentTheme);
+            
+            const icon = document.querySelector('.theme-toggle i');
+            icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            
+            // Save theme preference
+            localStorage.setItem('jsonviz-theme', currentTheme);
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('jsonviz-theme') || 'light';
+            currentTheme = savedTheme;
+            document.body.setAttribute('data-theme', currentTheme);
+            
+            const icon = document.querySelector('.theme-toggle i');
+            icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        // Parse JSON with debouncing
+        function parseJSON() {
+            const input = document.getElementById('jsonInput').value.trim();
+            const charCount = document.getElementById('charCount');
+            const inputStatus = document.getElementById('inputStatus');
+            
+            charCount.textContent = `${input.length} characters`;
+            
+            // Clear previous timeout
+            if (parseTimeout) {
+                clearTimeout(parseTimeout);
+            }
+            
+            if (!input) {
+                clearOutput();
+                inputStatus.textContent = 'Ready to parse JSON';
+                inputStatus.className = '';
+                return;
+            }
+            
+            inputStatus.innerHTML = '<span class="loading"></span> Parsing...';
+            
+            // Debounce parsing for better performance
+            parseTimeout = setTimeout(() => {
+                try {
+                    jsonData = JSON.parse(input);
+                    inputStatus.textContent = 'Valid JSON';
+                    inputStatus.className = 'status-valid';
+                    visualizeJSON(jsonData);
+                } catch (error) {
+                    jsonData = null;
+                    inputStatus.textContent = `Invalid JSON: ${error.message}`;
+                    inputStatus.className = 'status-invalid';
+                    showError(error.message);
+                }
+            }, 300);
+        }
+
+        // Visualize JSON data
+        function visualizeJSON(data) {
+            const output = document.getElementById('jsonOutput');
+            const outputStatus = document.getElementById('outputStatus');
+            const nodeCount = document.getElementById('nodeCount');
+            
+            const html = renderJSON(data, '');
+            output.innerHTML = html;
+            
+            const nodes = countNodes(data);
+            outputStatus.textContent = 'Visualization complete';
+            outputStatus.className = 'status-valid';
+            nodeCount.textContent = `${nodes} nodes`;
+        }
+
+        // Render JSON to HTML
+        function renderJSON(data, key = '', depth = 0) {
+            const indent = '  '.repeat(depth);
+            
+            if (data === null) {
+                return `${indent}<span class="json-key">"${key}"</span>: <span class="json-null">null</span>`;
+            }
+            
+            if (typeof data === 'string') {
+                return `${indent}<span class="json-key">"${key}"</span>: <span class="json-string">"${escapeHtml(data)}"</span>`;
+            }
+            
+            if (typeof data === 'number') {
+                return `${indent}<span class="json-key">"${key}"</span>: <span class="json-number">${data}</span>`;
+            }
+            
+            if (typeof data === 'boolean') {
+                return `${indent}<span class="json-key">"${key}"</span>: <span class="json-boolean">${data}</span>`;
+            }
+            
+            if (Array.isArray(data)) {
+                if (data.length === 0) {
+                    return `${indent}<span class="json-key">"${key}"</span>: <span class="json-bracket">[]</span>`;
+                }
+                
+                const id = `array_${Math.random().toString(36).substr(2, 9)}`;
+                let html = `${indent}<div class="collapsible" onclick="toggleCollapse('${id}')">`;
+                html += `<span class="collapse-icon">▼</span> `;
+                html += `<span class="json-key">"${key}"</span>: <span class="json-bracket">[</span> <span style="color: var(--text-secondary);">(${data.length} items)</span>`;
+                html += `</div>`;
+                html += `<div id="${id}" class="json-item">`;
+                
+                data.forEach((item, index) => {
+                    html += renderJSON(item, index.toString(), depth + 1);
+                    if (index < data.length - 1) html += ',';
+                    html += '<br>';
+                });
+                
+                html += `${indent}<span class="json-bracket">]</span>`;
+                html += `</div>`;
+                return html;
+            }
+            
+            if (typeof data === 'object') {
+                const keys = Object.keys(data);
+                if (keys.length === 0) {
+                    return `${indent}<span class="json-key">"${key}"</span>: <span class="json-bracket">{}</span>`;
+                }
+                
+                const id = `object_${Math.random().toString(36).substr(2, 9)}`;
+                let html = `${indent}<div class="collapsible" onclick="toggleCollapse('${id}')">`;
+                html += `<span class="collapse-icon">▼</span> `;
+                html += `<span class="json-key">"${key}"</span>: <span class="json-bracket">{</span> <span style="color: var(--text-secondary);">(${keys.length} keys)</span>`;
+                html += `</div>`;
+                html += `<div id="${id}" class="json-item">`;
+                
+                keys.forEach((objKey, index) => {
+                    html += renderJSON(data[objKey], objKey, depth + 1);
+                    if (index < keys.length - 1) html += ',';
+                    html += '<br>';
+                });
+                
+                html += `${indent}<span class="json-bracket">}</span>`;
+                html += `</div>`;
+                return html;
+            }
+            
+            return `${indent}<span class="json-key">"${key}"</span>: <span>${escapeHtml(String(data))}</span>`;
+        }
+
+        // Toggle collapse/expand
+        function toggleCollapse(id) {
+            const element = document.getElementById(id);
+            const icon = element.previousElementSibling.querySelector('.collapse-icon');
+            
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+                icon.textContent = '▼';
+                icon.classList.remove('collapsed');
+            } else {
+                element.style.display = 'none';
+                icon.textContent = '▶';
+                icon.classList.add('collapsed');
+            }
+        }
+
+        // Count nodes in JSON
+        function countNodes(data) {
+            if (data === null || typeof data !== 'object') return 1;
+            
+            if (Array.isArray(data)) {
+                return 1 + data.reduce((sum, item) => sum + countNodes(item), 0);
+            }
+            
+            return 1 + Object.values(data).reduce((sum, value) => sum + countNodes(value), 0);
+        }
+
+        // Show error message
+        function showError(message) {
+            const output = document.getElementById('jsonOutput');
+            const outputStatus = document.getElementById('outputStatus');
+            const nodeCount = document.getElementById('nodeCount');
+            
+            output.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>JSON Parse Error:</strong><br>
+                        ${escapeHtml(message)}
+                    </div>
+                </div>
+            `;
+            
+            outputStatus.textContent = 'Parse error';
+            outputStatus.className = 'status-invalid';
+            nodeCount.textContent = '0 nodes';
+        }
+
+        // Clear output
+        function clearOutput() {
+            const output = document.getElementById('jsonOutput');
+            const outputStatus = document.getElementById('outputStatus');
+            const nodeCount = document.getElementById('nodeCount');
+            
+            output.innerHTML = `
+                <div style="text-align: center; color: var(--text-secondary); margin-top: 2rem;">
+                    <i class="fas fa-arrow-left" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>Enter JSON data to see the visualization</p>
+                </div>
+            `;
+            
+            outputStatus.textContent = 'No data';
+            outputStatus.className = '';
+            nodeCount.textContent = '0 nodes';
+        }
+
+        // Format JSON
+        function formatJSON() {
+            const input = document.getElementById('jsonInput');
+            const value = input.value.trim();
+            
+            if (!value) return;
+            
+            try {
+                const parsed = JSON.parse(value);
+                input.value = JSON.stringify(parsed, null, 2);
+                parseJSON();
+            } catch (error) {
+                alert('Cannot format invalid JSON');
+            }
+        }
+
+        // Minify JSON
+        function minifyJSON() {
+            const input = document.getElementById('jsonInput');
+            const value = input.value.trim();
+            
+            if (!value) return;
+            
+            try {
+                const parsed = JSON.parse(value);
+                input.value = JSON.stringify(parsed);
+                parseJSON();
+            } catch (error) {
+                alert('Cannot minify invalid JSON');
+            }
+        }
+
+        // Copy to clipboard
+        async function copyToClipboard() {
+            const input = document.getElementById('jsonInput');
+            const value = input.value;
+            
+            if (!value) {
+                alert('Nothing to copy');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(value);
+                
+                // Show success feedback
+                const btn = event.target.closest('.btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.style.backgroundColor = 'var(--success-color)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.backgroundColor = '';
+                }, 2000);
+            } catch (error) {
+                // Fallback for older browsers
+                input.select();
+                document.execCommand('copy');
+                alert('Copied to clipboard');
+            }
+        }
+
+        // Clear all
+        function clearAll() {
+            if (confirm('Clear all data?')) {
+                document.getElementById('jsonInput').value = '';
+                parseJSON();
+            }
+        }
+
+        // Load sample JSON
+        function loadSample() {
+            const sampleJSON = {
+                "user": {
+                    "id": 12345,
+                    "name": "Pruthvi Shetty",
+                    "email": "pruthvi@example.com",
+                    "active": true,
+                    "roles": ["developer", "data-scientist"],
+                    "preferences": {
+                        "theme": "dark",
+                        "notifications": {
+                            "email": true,
+                            "push": false,
+                            "sms": null
+                        }
+                    },
+                    "projects": [
+                        {
+                            "name": "JSONViz",
+                            "status": "active",
+                            "technologies": ["HTML", "CSS", "JavaScript"],
+                            "stats": {
+                                "lines": 1250,
+                                "commits": 47,
+                                "contributors": 1
+                            }
+                        },
+                        {
+                            "name": "Portfolio",
+                            "status": "complete",
+                            "technologies": ["Bootstrap", "jQuery"],
+                            "stats": {
+                                "lines": 2100,
+                                "commits": 89,
+                                "contributors": 1
+                            }
+                        }
+                    ]
+                }
+            };
+            
+            document.getElementById('jsonInput').value = JSON.stringify(sampleJSON, null, 2);
+            parseJSON();
+        }
+
+        // Validate JSON
+        function validateJSON() {
+            parseJSON();
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTheme();
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'k':
+                            e.preventDefault();
+                            clearAll();
+                            break;
+                        case 'f':
+                            e.preventDefault();
+                            formatJSON();
+                            break;
+                        case 'm':
+                            e.preventDefault();
+                            minifyJSON();
+                            break;
+                    }
+                }
+            });
+        });
+    </script>
+    <script src="js/privacy-counter.js"></script>
+    
+    <!-- GoatCounter Analytics (Privacy-First) -->
+    <script data-goatcounter="https://pruthvishetty.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+    
+    <script>
+        // Initialize privacy counter for JSONViz
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add counter button to header controls
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls) {
+                // Insert before theme toggle
+                const themeToggle = headerControls.querySelector('.theme-toggle');
+                if (themeToggle) {
+                    themeToggle.insertAdjacentHTML('beforebegin', '<div id="jsonviz-counter"></div>');
+                } else {
+                    headerControls.insertAdjacentHTML('beforeend', '<div id="jsonviz-counter"></div>');
+                }
+            }
+            
+            // Initialize counter
+            const counter = new PrivacyCounter('jsonviz', 'jsonviz-counter');
+        });
+    </script>
+</body>
+</html>

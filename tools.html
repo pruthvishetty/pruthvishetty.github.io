@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R1MHFTMHBL"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-R1MHFTMHBL');
+</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Privacy-first developer tools by Pruthvi Shetty - JSON visualizer, text analyzer, QR generator. All client-side processing.">
+  <meta name="keywords" content="Privacy tools, Developer utilities, JSON visualizer, Text analyzer, QR generator, Client-side tools, No tracking">
+
+  <title>Developer Tools | Pruthvi Shetty</title>
+  <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* Additional styles for tools page */
+    .tools-hero {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 4rem 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tools-hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.1);
+    }
+
+    .tools-hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .tools-hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .tools-hero p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .tools-grid {
+      padding: 4rem 0;
+    }
+
+    .tool-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+      height: 100%;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .tool-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .tool-card-header {
+      padding: 2rem;
+      text-align: center;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      position: relative;
+    }
+
+    .tool-icon {
+      width: 80px;
+      height: 80px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .tool-icon i {
+      font-size: 2rem;
+      color: #667eea;
+    }
+
+    .tool-card h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+
+    .tool-card-body {
+      padding: 2rem;
+    }
+
+    .tool-description {
+      color: #6c757d;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .tool-features {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 1.5rem;
+    }
+
+    .tool-features li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: #495057;
+    }
+
+    .tool-features li i {
+      color: #28a745;
+      width: 16px;
+    }
+
+    .tool-cta {
+      background: #667eea;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .tool-cta:hover {
+      background: #5a6fd8;
+      color: white;
+      text-decoration: none;
+      transform: translateX(2px);
+    }
+
+    .privacy-section {
+      background: #f8f9fa;
+      padding: 4rem 0;
+    }
+
+    .privacy-content {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .privacy-content h2 {
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+      color: #2c3e50;
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+
+    .privacy-item {
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .privacy-item i {
+      font-size: 3rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+
+    .privacy-item h4 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #2c3e50;
+    }
+
+    .back-link {
+      position: fixed;
+      top: 2rem;
+      left: 2rem;
+      background: rgba(255,255,255,0.9);
+      padding: 0.75rem;
+      border-radius: 50%;
+      text-decoration: none;
+      color: #2c3e50;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .back-link:hover {
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+      transform: translateX(-2px);
+    }
+
+    .stats-section {
+      padding: 3rem 0;
+      background: white;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #667eea;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-top: 0.5rem;
+    }
+
+    /* Dark theme support */
+    body.dark-theme .tool-card {
+      background: #2d2d2d;
+      color: #ffffff;
+    }
+
+    body.dark-theme .tool-card h3 {
+      color: #ffffff;
+    }
+
+    body.dark-theme .tool-card-header {
+      background: linear-gradient(135deg, #404040 0%, #2d2d2d 100%);
+    }
+
+    body.dark-theme .privacy-section {
+      background: #1a1a1a;
+    }
+
+    body.dark-theme .privacy-content h2,
+    body.dark-theme .privacy-item h4 {
+      color: #ffffff;
+    }
+
+    body.dark-theme .stat-item {
+      background: #404040;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .tools-hero h1 {
+        font-size: 2rem;
+      }
+
+      .tools-hero p {
+        font-size: 1rem;
+      }
+
+      .back-link {
+        top: 1rem;
+        left: 1rem;
+      }
+
+      .tool-card-header,
+      .tool-card-body {
+        padding: 1.5rem;
+      }
+
+      .privacy-content h2 {
+        font-size: 2rem;
+      }
+
+      .privacy-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link" title="Back to Portfolio">
+    <i class="fas fa-arrow-left"></i>
+  </a>
+
+  <!-- Hero Section -->
+  <section class="tools-hero">
+    <div class="tools-hero-content">
+      <div class="container">
+        <h1><i class="fas fa-tools"></i> Developer Tools</h1>
+        <p>Privacy-first utilities that process everything client-side. Your data never leaves your browser.</p>
+        <div class="privacy-badge">
+          <i class="fas fa-shield-alt"></i>
+          <span>100% Client-Side Processing</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tools Grid -->
+  <section class="tools-grid">
+    <div class="container">
+      <div class="row">
+        <!-- JSONViz -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="jsonviz.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-code-branch"></i>
+              </div>
+              <h3>JSONViz</h3>
+              <p class="text-muted">JSON Visualizer</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Visualize, format, and analyze JSON data with an interactive tree view. Perfect for debugging APIs and understanding complex data structures.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> Interactive tree visualization</li>
+                <li><i class="fas fa-check"></i> Syntax highlighting & validation</li>
+                <li><i class="fas fa-check"></i> Format & minify JSON</li>
+                <li><i class="fas fa-check"></i> Collapsible nodes</li>
+                <li><i class="fas fa-check"></i> Copy to clipboard</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open JSONViz
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- TextAnalyzer -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="textanalyzer.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <h3>TextAnalyzer</h3>
+              <p class="text-muted">Advanced Text Analysis</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Comprehensive text analysis with word count, reading time, and advanced statistics. Plus powerful text manipulation tools.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> Word & character counting</li>
+                <li><i class="fas fa-check"></i> Reading time estimation</li>
+                <li><i class="fas fa-check"></i> Text statistics & analysis</li>
+                <li><i class="fas fa-check"></i> Case conversion tools</li>
+                <li><i class="fas fa-check"></i> Text cleaning utilities</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open TextAnalyzer
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- QR Generator -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="qrcode.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-qrcode"></i>
+              </div>
+              <h3>QR Generator</h3>
+              <p class="text-muted">QR Code Creator</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Generate custom QR codes for text, URLs, WiFi, emails, and more. Full customization with multiple export formats.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> Multiple QR code types</li>
+                <li><i class="fas fa-check"></i> Custom colors & sizes</li>
+                <li><i class="fas fa-check"></i> WiFi network sharing</li>
+                <li><i class="fas fa-check"></i> PNG, JPG, SVG export</li>
+                <li><i class="fas fa-check"></i> Error correction levels</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open QR Generator
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy Philosophy -->
+  <section class="privacy-section">
+    <div class="container">
+      <div class="privacy-content">
+        <h2><i class="fas fa-shield-alt"></i> Privacy-First Philosophy</h2>
+        <p class="lead">
+          These tools are built with privacy as a core principle. Everything happens in your browser - 
+          no data is ever sent to servers, stored in databases, or tracked by analytics.
+        </p>
+        
+        <div class="privacy-grid">
+          <div class="privacy-item">
+            <i class="fas fa-laptop-code"></i>
+            <h4>Client-Side Only</h4>
+            <p>All processing happens in your browser using JavaScript. No server uploads or API calls.</p>
+          </div>
+          
+          <div class="privacy-item">
+            <i class="fas fa-user-shield"></i>
+            <h4>No Tracking</h4>
+            <p>No cookies, analytics, or tracking scripts. Your usage patterns remain completely private.</p>
+          </div>
+          
+          <div class="privacy-item">
+            <i class="fas fa-code"></i>
+            <h4>Open Source</h4>
+            <p>Transparent code that you can inspect. No hidden functionality or data collection.</p>
+          </div>
+          
+          <div class="privacy-item">
+            <i class="fas fa-wifi-off"></i>
+            <h4>Offline Ready</h4>
+            <p>Works without internet after initial load. Your data never needs to leave your device.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-number">3</span>
+          <div class="stat-label">Privacy-First Tools</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">0</span>
+          <div class="stat-label">Servers Used</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">100%</span>
+          <div class="stat-label">Client-Side Processing</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">2025</span>
+          <div class="stat-label">Privacy-First Since</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background: #2c3e50; color: white; padding: 2rem 0; text-align: center;">
+    <div class="container">
+      <p>&copy; 2025 Pruthvi Shetty. Built with privacy in mind.</p>
+      <p style="margin-top: 0.5rem; opacity: 0.8;">
+        <a href="index.html" style="color: #667eea; text-decoration: none;">← Back to Portfolio</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+  <script src="js/script.js"></script>
+  <script src="js/privacy-counter.js"></script>
+  
+  <!-- GoatCounter Analytics (Privacy-First) -->
+  <script data-goatcounter="https://pruthvishetty.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+  <script>
+    // Add usage stats to tools landing page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get combined usage stats from all tools
+      const tools = ['jsonviz', 'textanalyzer', 'qrcode'];
+      let totalUsage = 0;
+      let toolsUsed = 0;
+      
+      tools.forEach(tool => {
+        const usage = parseInt(localStorage.getItem(`${tool}-personal-usage`) || '0');
+        if (usage > 0) {
+          totalUsage += usage;
+          toolsUsed++;
+        }
+      });
+      
+      // Update stats if user has used any tools
+      if (totalUsage > 0) {
+        const statsContainer = document.querySelector('.stats-grid');
+        if (statsContainer) {
+          // Add personal usage stats
+          const personalStatsHTML = `
+            <div class="stat-item" style="grid-column: span 2; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">
+              <span class="stat-number">${totalUsage}</span>
+              <div class="stat-label">Your Total Tool Usage</div>
+              <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;">
+                Across ${toolsUsed} ${toolsUsed === 1 ? 'tool' : 'tools'}
+              </div>
+            </div>
+          `;
+          statsContainer.insertAdjacentHTML('beforeend', personalStatsHTML);
+        }
+      }
+      
+      // Add privacy badge to hero section
+      const heroContent = document.querySelector('.tools-hero-content .container');
+      if (heroContent) {
+        heroContent.insertAdjacentHTML('beforeend', `
+          <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+            <div class="privacy-badge" style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 25px; font-size: 0.9rem;">
+              <i class="fas fa-shield-alt"></i>
+              <span>Privacy-First Since 2025</span>
+            </div>
+            <div class="privacy-badge" style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 25px; font-size: 0.9rem;">
+              <i class="fas fa-laptop-code"></i>
+              <span>100% Client-Side</span>
+            </div>
+          </div>
+        `);
+      }
+    });
+  </script>
+</body>
+</html>
