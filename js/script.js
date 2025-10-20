@@ -15,7 +15,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
     'newport-beach.jpeg': 'Newport Beach, CA',
     'palo-alto.jpeg': 'Palo Alto, CA',
     'emeryville.jpg': 'Emeryville, CA',
-    'byndoor.jpg': 'Byndoor, India',
+    'byndoor.jpg': 'Udupi, India',
     // Add more city names here...
   };
 
