@@ -108,6 +108,7 @@ const PoemsManager = {
 
     // Initialize theme
     this.initTheme();
+    this.updateToggleUI();
 
     // Smooth scroll for header
     let lastScrollY = window.scrollY;
@@ -320,14 +321,15 @@ const PoemsManager = {
     const searchOverlay = document.getElementById('searchOverlay');
     if (searchOverlay) searchOverlay.classList.remove('active');
 
-    // Parse markdown
-    let htmlContent = poem.content;
+    // Parse markdown — strip leading # Title heading to avoid duplication
+    let contentWithoutTitle = poem.content.replace(/^#\s+.+\n?/, '').trimStart();
+    let htmlContent = contentWithoutTitle;
     if (typeof marked !== 'undefined') {
       marked.setOptions({
         breaks: true,
         gfm: true
       });
-      htmlContent = marked.parse(poem.content);
+      htmlContent = marked.parse(contentWithoutTitle);
     }
 
     // Generate shareable URL
@@ -366,8 +368,10 @@ const PoemsManager = {
       </div>
     `;
 
-    // Update URL without page reload
-    window.history.pushState({}, '', shareUrl);
+    // Update URL without page reload (use relative URL to avoid cross-origin errors)
+    try {
+      window.history.pushState({}, '', `?poem=${poem.filename.replace('.md', '')}`);
+    } catch (e) {}
 
     // Update meta tags for sharing
     this.updateMetaTags(poem);
@@ -437,6 +441,24 @@ const PoemsManager = {
 
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('poems-theme', newTheme);
+    this.updateToggleUI();
+  },
+
+  // Sync toggle UI to current theme
+  updateToggleUI() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const label = document.getElementById('poemsThemeLabel');
+    const root = document.documentElement;
+
+    if (isDark) {
+      root.classList.add('dark-theme');
+      root.classList.remove('light-theme');
+      if (label) label.textContent = 'Dark Mode';
+    } else {
+      root.classList.add('light-theme');
+      root.classList.remove('dark-theme');
+      if (label) label.textContent = 'Light Mode';
+    }
   }
 };
 

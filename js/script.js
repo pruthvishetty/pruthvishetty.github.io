@@ -181,15 +181,16 @@ let currentZoneIndex = 0;
 function updateClock() {
     const now = new Date();
     const currentOffset = timezones[currentZoneIndex].offset;
-    
-    // Adjust to the current timezone
-    now.setHours(now.getUTCHours() + currentOffset);
+
+    // Build a new Date adjusted to the target timezone offset
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const adjusted = new Date(utcMs + currentOffset * 3600000);
 
     const dateOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
     const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
 
-    document.getElementById('date-display').textContent = now.toLocaleDateString('en-US', dateOptions);
-    document.getElementById('time-display').textContent = now.toLocaleTimeString('en-US', timeOptions);
+    document.getElementById('date-display').textContent = adjusted.toLocaleDateString('en-US', dateOptions);
+    document.getElementById('time-display').textContent = adjusted.toLocaleTimeString('en-US', timeOptions);
     document.querySelector('#timezone-toggle span').textContent = timezones[currentZoneIndex].code;
 }
 

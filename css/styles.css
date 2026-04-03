@@ -219,9 +219,6 @@ body {
   color: var(--primary-color);
 }
 
-#mySidenav {
-  background-color: var(--sidebar-color-dark);
-}
 
 
 #city-name {
