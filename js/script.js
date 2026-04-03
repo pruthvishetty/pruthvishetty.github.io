@@ -1,6 +1,5 @@
 window.addEventListener('DOMContentLoaded', (event) => {
   // Selecting elements
-  const pronunciationIcon = document.getElementById('pronunciation-icon');
   const socialIcons = document.getElementById('social-icons');
   const fixedBg = document.getElementById('fixed-bg');
   const landing = document.getElementById('landing');
@@ -53,12 +52,6 @@ window.addEventListener('DOMContentLoaded', (event) => {
     anchor.appendChild(icon);
   
     socialIcons.appendChild(anchor);
-  });
-
-  // Adding pronunciation
-  pronunciationIcon.addEventListener('click', () => {
-    let audio = new Audio('assets/audio/pruthvi.mp3');
-    audio.play();
   });
 
   // Scrolling effect for background image
