@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /publish.html
 
 Sitemap: https://www.pruthvishetty.com/sitemap.xml

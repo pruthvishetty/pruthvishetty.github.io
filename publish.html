@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Publish">
+  <title>Publish | Pruthvi Shetty</title>
+  <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #f0f6fc;
+      min-height: 100vh;
+      padding: 1rem;
+      padding-top: env(safe-area-inset-top, 1rem);
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; text-align: center; margin: 1rem 0; opacity: 0.9; }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      background: transparent;
+      color: #8b949e;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: #1f6feb;
+      border-color: #1f6feb;
+      color: #fff;
+    }
+
+    .field { margin-bottom: 1rem; }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #8b949e;
+      margin-bottom: 0.35rem;
+      font-weight: 500;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 0.75rem;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #f0f6fc;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #1f6feb;
+    }
+    textarea {
+      min-height: 250px;
+      resize: vertical;
+      font-family: 'Georgia', serif;
+      line-height: 1.7;
+    }
+
+    .blog-fields { display: none; }
+    .blog-fields.visible { display: block; }
+
+    .btn {
+      width: 100%;
+      padding: 0.85rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 0.5rem;
+    }
+    .btn-publish {
+      background: #238636;
+      color: #fff;
+    }
+    .btn-publish:hover { background: #2ea043; }
+    .btn-publish:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      text-align: center;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 8px;
+      display: none;
+      font-size: 0.95rem;
+    }
+    .status.success { display: block; background: #0d2818; color: #3fb950; border: 1px solid #238636; }
+    .status.error { display: block; background: #2d1117; color: #f85149; border: 1px solid #da3633; }
+    .status.loading { display: block; background: #0d1117; color: #8b949e; border: 1px solid #30363d; }
+
+    .setup {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .setup p { font-size: 0.85rem; color: #8b949e; margin-bottom: 0.75rem; }
+    .setup .field { margin-bottom: 0.75rem; }
+    .btn-save {
+      background: #30363d;
+      color: #f0f6fc;
+      padding: 0.6rem 1rem;
+      width: auto;
+    }
+    .btn-save:hover { background: #484f58; }
+
+    .token-status {
+      font-size: 0.8rem;
+      color: #3fb950;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .token-status.missing { color: #f85149; }
+
+    .preview {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-family: 'Georgia', serif;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      font-size: 0.9rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Publish</h1>
+
+    <div id="setupSection" class="setup" style="display:none;">
+      <p>Enter your GitHub Personal Access Token (repo scope). Stored locally on this device only.</p>
+      <div class="field">
+        <input type="password" id="tokenInput" placeholder="ghp_...">
+      </div>
+      <button class="btn btn-save" onclick="saveToken()">Save Token</button>
+    </div>
+
+    <div id="tokenStatusBar" class="token-status"></div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="setType('poem')">Poem</button>
+      <button class="tab" onclick="setType('blog')">Blog</button>
+    </div>
+
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="title" placeholder="A Different Warmth">
+    </div>
+
+    <div class="field" id="themeField">
+      <label>Theme <span style="opacity:0.5">(optional)</span></label>
+      <input type="text" id="theme" placeholder="A quiet reflection on change">
+    </div>
+
+    <div class="blog-fields" id="blogFields">
+      <div class="field">
+        <label>Category</label>
+        <input type="text" id="category" placeholder="AI Engineering">
+      </div>
+      <div class="field">
+        <label>Excerpt</label>
+        <textarea id="excerpt" style="min-height:80px; font-family:inherit;" placeholder="Brief summary..."></textarea>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Content</label>
+      <textarea id="content" placeholder="Write your poem or blog post here..."></textarea>
+    </div>
+
+    <button class="btn btn-publish" id="publishBtn" onclick="publish()">Publish</button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const REPO = 'pruthvishetty/pruthvishetty.github.io';
+    const API = 'https://api.github.com';
+    let contentType = 'poem';
+
+    // --- Token management ---
+    function getToken() { return localStorage.getItem('gh_publish_token'); }
+    function saveToken() {
+      const t = document.getElementById('tokenInput').value.trim();
+      if (t) {
+        localStorage.setItem('gh_publish_token', t);
+        document.getElementById('setupSection').style.display = 'none';
+        updateTokenStatus();
+      }
+    }
+    function updateTokenStatus() {
+      const bar = document.getElementById('tokenStatusBar');
+      if (getToken()) {
+        bar.textContent = 'Token saved on this device';
+        bar.className = 'token-status';
+        bar.onclick = () => {
+          document.getElementById('setupSection').style.display = 'block';
+          document.getElementById('tokenInput').value = getToken();
+        };
+        bar.style.cursor = 'pointer';
+      } else {
+        bar.textContent = 'No token configured — tap to set up';
+        bar.className = 'token-status missing';
+        bar.onclick = () => document.getElementById('setupSection').style.display = 'block';
+        bar.style.cursor = 'pointer';
+      }
+    }
+
+    // --- Type toggle ---
+    function setType(type) {
+      contentType = type;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('blogFields').classList.toggle('visible', type === 'blog');
+      document.getElementById('themeField').style.display = type === 'poem' ? 'block' : 'none';
+      document.getElementById('content').placeholder = type === 'poem'
+        ? 'Write your poem here...'
+        : 'Write your blog post in markdown...';
+    }
+
+    // --- GitHub API helpers ---
+    async function ghFetch(path, opts = {}) {
+      const token = getToken();
+      if (!token) throw new Error('No GitHub token configured');
+      const res = await fetch(`${API}/repos/${REPO}/contents/${path}`, {
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          ...(opts.headers || {})
+        },
+        ...opts
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `GitHub API error ${res.status}`);
+      }
+      return res.json();
+    }
+
+    async function createFile(path, content, message) {
+      return ghFetch(path, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message,
+          content: btoa(unescape(encodeURIComponent(content)))
+        })
+      });
+    }
+
+    async function updateFile(path, content, sha, message) {
+      return ghFetch(path, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message,
+          content: btoa(unescape(encodeURIComponent(content))),
+          sha
+        })
+      });
+    }
+
+    async function getFile(path) {
+      const data = await ghFetch(path);
+      return {
+        content: decodeURIComponent(escape(atob(data.content.replace(/\n/g, '')))),
+        sha: data.sha
+      };
+    }
+
+    // --- Publish ---
+    async function publish() {
+      const title = document.getElementById('title').value.trim();
+      const content = document.getElementById('content').value.trim();
+      const statusEl = document.getElementById('status');
+      const btn = document.getElementById('publishBtn');
+
+      if (!title || !content) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Title and content are required.';
+        return;
+      }
+      if (!getToken()) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Set up your GitHub token first.';
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.className = 'status loading';
+      statusEl.textContent = 'Publishing...';
+
+      try {
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `${slug}.md`;
+
+        if (contentType === 'poem') {
+          await publishPoem(filename, title, date, content);
+        } else {
+          await publishBlog(filename, title, date, content);
+        }
+
+        statusEl.className = 'status success';
+        statusEl.textContent = `Published "${title}" successfully!`;
+        document.getElementById('title').value = '';
+        document.getElementById('content').value = '';
+        document.getElementById('theme').value = '';
+        document.getElementById('category').value = '';
+        document.getElementById('excerpt').value = '';
+      } catch (e) {
+        statusEl.className = 'status error';
+        statusEl.textContent = `Error: ${e.message}`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function publishPoem(filename, title, date, content) {
+      const theme = document.getElementById('theme').value.trim();
+
+      // Build markdown with frontmatter
+      let md = `---\ntitle: ${title}\ndate: ${date}\nauthor: Pruthvi Shetty\n`;
+      if (theme) md += `theme: ${theme}\n`;
+      md += `---\n\n# ${title}\n\n${content}\n`;
+
+      // Create the poem file
+      await createFile(`poems/${filename}`, md, `Add poem: ${title}`);
+
+      // Update poems.js registry
+      const registry = await getFile('poems/poems.js');
+      const currentContent = registry.content;
+      // Insert new filename at the beginning of the array
+      const updated = currentContent.replace(
+        /const poemsFiles = \[\n/,
+        `const poemsFiles = [\n  "${filename}",\n`
+      );
+      await updateFile('poems/poems.js', updated, registry.sha, `Register poem: ${title}`);
+    }
+
+    async function publishBlog(filename, title, date, content) {
+      const category = document.getElementById('category').value.trim() || 'General';
+      const excerpt = document.getElementById('excerpt').value.trim() || title;
+
+      // Create the blog .md file
+      let md = `---\ntitle: ${title}\ndate: ${date}\nauthor: Pruthvi Shetty\ncategory: ${category}\n---\n\n# ${title}\n\n${content}\n`;
+      await createFile(`blogs/${filename}`, md, `Add blog: ${title}`);
+
+      // Update posts.js registry — add new entry at the start of the array
+      const registry = await getFile('blogs/posts.js');
+      const escapedContent = content.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+      const newEntry = `  {
+    filename: "${filename}",
+    title: "${title}",
+    date: "${date}",
+    category: "${category}",
+    author: "Pruthvi Shetty",
+    featured: false,
+    order: 0,
+    image: "",
+    excerpt: "${excerpt.replace(/"/g, '\\"')}",
+    content: \`# ${title}\n\n${escapedContent}\`
+  },`;
+
+      const updated = registry.content.replace(
+        'const blogPosts = [\n',
+        `const blogPosts = [\n${newEntry}\n`
+      );
+      await updateFile('blogs/posts.js', updated, registry.sha, `Register blog: ${title}`);
+    }
+
+    // --- Init ---
+    updateTokenStatus();
+  </script>
+</body>
+</html>
