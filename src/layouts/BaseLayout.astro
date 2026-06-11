@@ -1,0 +1,112 @@
+---
+import '@fontsource-variable/fraunces';
+import '@fontsource-variable/newsreader';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  noindex?: boolean;
+  bare?: boolean; // no nav/footer (e.g. /write gate)
+}
+
+const {
+  title,
+  description = 'Pruthvi Shetty — AI engineer in San Francisco. Builder of agents, brewer of chai, occasional poet.',
+  ogImage = '/assets/images/pruthvi.jpg',
+  noindex = false,
+  bare = false,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/assets/images/favicon.ico" sizes="any" />
+    <link rel="icon" href="/assets/images/favicon.png" type="image/png" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site)} />
+    <meta property="og:site_name" content="Pruthvi Shetty" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@pruthvishetty" />
+
+    <meta name="theme-color" content="#faf6ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16120e" media="(prefers-color-scheme: dark)" />
+
+    <!-- Theme before paint: no flash, ever. -->
+    <script is:inline>
+      (function () {
+        const apply = () => {
+          const saved = localStorage.getItem('theme');
+          const dark = saved ? saved === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', dark);
+        };
+        apply();
+        document.addEventListener('astro:after-swap', apply);
+      })();
+    </script>
+
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    {!bare && <Nav />}
+    <main id="main">
+      <slot />
+    </main>
+    {!bare && <Footer />}
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      import '../scripts/site.js';
+    </script>
+
+    <!-- GoatCounter: privacy-first analytics -->
+    <script
+      is:inline
+      data-goatcounter="https://pruthvishetty.goatcounter.com/count"
+      async
+      src="https://gc.zgo.at/count.js"></script>
+  </body>
+</html>
+
+<style>
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0.75rem;
+    z-index: 4000;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0.5em 1em;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  .skip-link:focus {
+    left: 0.75rem;
+  }
+</style>

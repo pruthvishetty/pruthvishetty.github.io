@@ -1,0 +1,395 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Time Traveler"
+  tagline="Epoch to human and back — across every clock that matters."
+>
+  <div class="tool-body">
+    <div class="tool-row">
+      <button class="chip-btn" id="t-chip-now">Now</button>
+      <button class="chip-btn" id="t-chip-iso">Copy ISO</button>
+    </div>
+
+    <section class="tool-panel">
+      <div class="panel-label"><span>Now</span><span id="t-local-tz"></span></div>
+      <div class="now-grid">
+        <div class="now-cell">
+          <span class="now-label">epoch · seconds</span>
+          <span class="nrow">
+            <b class="now-num" id="t-now-s">––––––––––</b>
+            <button class="chip-btn" id="t-copy-s" aria-label="Copy current epoch in seconds">Copy</button>
+          </span>
+        </div>
+        <div class="now-cell">
+          <span class="now-label">epoch · milliseconds</span>
+          <span class="nrow">
+            <b class="now-num" id="t-now-ms">–––––––––––––</b>
+            <button class="chip-btn" id="t-copy-ms" aria-label="Copy current epoch in milliseconds">Copy</button>
+          </span>
+        </div>
+        <div class="now-cell iso">
+          <span class="now-label">iso 8601 · utc</span>
+          <span class="nrow"><b class="now-num" id="t-now-iso">––––</b></span>
+        </div>
+      </div>
+    </section>
+
+    <div class="tool-grid cols-2" style="margin-top: var(--space-3);">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Epoch → Human</span><span id="t-detect"></span></div>
+        <input
+          id="t-epoch"
+          class="tool-input"
+          type="text"
+          inputmode="decimal"
+          spellcheck="false"
+          autocomplete="off"
+          aria-label="Epoch timestamp, in seconds or milliseconds"
+          placeholder="1781234567 — seconds or millis, I'll sniff it out"
+        />
+        <p class="tool-error" id="t-epoch-err" hidden></p>
+        <p class="rel-line" id="t-rel" hidden></p>
+        <div class="zone-table" id="t-zones" hidden>
+          <div class="zrow local"><span class="zname mono-label" id="t-zlocal-name">Your time</span><span class="zval" data-z="local"></span></div>
+          <div class="zrow"><span class="zname mono-label">San Francisco</span><span class="zval" data-z="America/Los_Angeles"></span></div>
+          <div class="zrow"><span class="zname mono-label">New York</span><span class="zval" data-z="America/New_York"></span></div>
+          <div class="zrow"><span class="zname mono-label">London</span><span class="zval" data-z="Europe/London"></span></div>
+          <div class="zrow"><span class="zname mono-label">Bengaluru</span><span class="zval" data-z="Asia/Kolkata"></span></div>
+          <div class="zrow"><span class="zname mono-label">Tokyo</span><span class="zval" data-z="Asia/Tokyo"></span></div>
+          <div class="zrow"><span class="zname mono-label">UTC</span><span class="zval" data-z="UTC"></span></div>
+        </div>
+        <p class="tool-note">Negatives and decimals welcome — anything ≥ 10¹² is read as milliseconds.</p>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Human → Epoch</span></div>
+        <label class="field-label" for="t-dt">Wall-clock time</label>
+        <input type="datetime-local" id="t-dt" class="tool-input" step="1" />
+        <label class="field-label" for="t-tz">…as read in</label>
+        <select id="t-tz" class="tool-select" aria-label="Time zone the wall-clock time is in">
+          <option value="local" selected>Your time</option>
+          <option value="America/Los_Angeles">San Francisco</option>
+          <option value="America/New_York">New York</option>
+          <option value="Europe/London">London</option>
+          <option value="Asia/Kolkata">Bengaluru</option>
+          <option value="Asia/Tokyo">Tokyo</option>
+          <option value="UTC">UTC</option>
+        </select>
+        <div class="out-rows" id="t-out" hidden>
+          <div class="out-row"><span class="mono-label">epoch · s</span><code id="t-out-s"></code><button class="chip-btn" data-copy="t-out-s" aria-label="Copy epoch seconds">Copy</button></div>
+          <div class="out-row"><span class="mono-label">epoch · ms</span><code id="t-out-ms"></code><button class="chip-btn" data-copy="t-out-ms" aria-label="Copy epoch milliseconds">Copy</button></div>
+          <div class="out-row"><span class="mono-label">iso · utc</span><code id="t-out-iso"></code><button class="chip-btn" data-copy="t-out-iso" aria-label="Copy ISO 8601 string">Copy</button></div>
+        </div>
+        <p class="tool-note">DST-aware: 4 PM in Bengaluru and 4 PM in London are very different cups of chai.</p>
+      </section>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  function initTimeTraveler() {
+    const root = document.getElementById('t-epoch') as HTMLInputElement | null;
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = '1';
+
+    const w = window as any;
+    if (w.__ttTick) {
+      clearInterval(w.__ttTick);
+      w.__ttTick = undefined;
+    }
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const epochIn = root;
+    const dtIn = $('t-dt') as HTMLInputElement;
+    const tzSel = $('t-tz') as HTMLSelectElement;
+    const err = $('t-epoch-err');
+    const rel = $('t-rel');
+    const zones = $('t-zones');
+    const detect = $('t-detect');
+    const out = $('t-out');
+    const zoneCells = Array.from(zones.querySelectorAll<HTMLElement>('[data-z]'));
+
+    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    $('t-local-tz').textContent = localTz;
+    $('t-zlocal-name').textContent = `Your time · ${localTz}`;
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    /* ---- Now panel, ticking ---- */
+    function tick() {
+      const now = Date.now();
+      $('t-now-s').textContent = String(Math.floor(now / 1000));
+      $('t-now-ms').textContent = String(now);
+      $('t-now-iso').textContent = new Date(now).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    }
+    tick();
+    w.__ttTick = setInterval(tick, 1000);
+
+    async function copyText(text: string, what: string) {
+      await navigator.clipboard.writeText(text);
+      (window as any).toast?.(`${what} copied. 📋`);
+    }
+    $('t-copy-s').addEventListener('click', () => copyText($('t-now-s').textContent ?? '', 'Epoch seconds'));
+    $('t-copy-ms').addEventListener('click', () => copyText($('t-now-ms').textContent ?? '', 'Epoch millis'));
+    $('t-chip-iso').addEventListener('click', () => copyText(new Date().toISOString(), 'ISO timestamp'));
+
+    /* ---- formatting helpers ---- */
+    function fmtZone(d: Date, tz: string): string {
+      const date = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      }).format(d);
+      const time = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true,
+      }).format(d);
+      return `${date} · ${time}`;
+    }
+
+    function relative(ms: number): string {
+      const diff = ms - Date.now();
+      const abs = Math.abs(diff);
+      const phrase = (n: number, unit: string, approx = false) => {
+        const v = Math.round(n);
+        const u = v === 1 ? unit : `${unit}s`;
+        const core = `${approx ? 'about ' : ''}${v} ${u}`;
+        return diff < 0 ? `${core} ago` : `in ${core}`;
+      };
+      if (abs < 10_000) return 'right about now';
+      if (abs < 90_000) return phrase(abs / 1000, 'second');
+      if (abs < 90 * 60_000) return phrase(abs / 60_000, 'minute');
+      if (abs < 36 * 3_600_000) return phrase(abs / 3_600_000, 'hour', true);
+      if (abs < 45 * 86_400_000) return phrase(abs / 86_400_000, 'day');
+      if (abs < 550 * 86_400_000) return phrase(abs / 2_629_800_000, 'month', true);
+      return phrase(abs / 31_557_600_000, 'year', true);
+    }
+
+    /* ---- Epoch → Human ---- */
+    function renderEpoch() {
+      err.hidden = true;
+      rel.hidden = true;
+      zones.hidden = true;
+      detect.textContent = '';
+      const raw = epochIn.value.trim();
+      if (!raw) return;
+      const n = Number(raw);
+      if (!Number.isFinite(n)) {
+        err.textContent = "✗ That doesn't parse as a number.";
+        err.hidden = false;
+        return;
+      }
+      const isMs = Math.abs(n) >= 1e12;
+      const ms = isMs ? n : n * 1000;
+      if (Math.abs(ms) > 8.64e15) {
+        err.textContent = '✗ Out of range — even for a time machine (±275,760 years or so).';
+        err.hidden = false;
+        return;
+      }
+      detect.textContent = isMs ? 'read as milliseconds' : 'read as seconds';
+      const d = new Date(ms);
+      for (const cell of zoneCells) {
+        const tz = cell.dataset.z === 'local' ? localTz : cell.dataset.z!;
+        cell.textContent = fmtZone(d, tz);
+      }
+      rel.textContent = relative(ms);
+      rel.hidden = false;
+      zones.hidden = false;
+    }
+
+    let epochT: ReturnType<typeof setTimeout>;
+    epochIn.addEventListener('input', () => {
+      clearTimeout(epochT);
+      epochT = setTimeout(renderEpoch, 200);
+    });
+
+    /* ---- Human → Epoch ---- */
+    // What UTC instant shows this wall time in tz? Guess via Date.UTC, then
+    // correct by comparing against formatToParts in that zone (2 passes suffice).
+    function tzWallUtc(epochMs: number, tz: string): number {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).formatToParts(new Date(epochMs));
+      const g: Record<string, string> = {};
+      for (const p of parts) g[p.type] = p.value;
+      return Date.UTC(+g.year, +g.month - 1, +g.day, +g.hour % 24, +g.minute, +g.second);
+    }
+
+    function wallToEpoch(y: number, mo: number, d: number, h: number, mi: number, s: number, tz: string): number {
+      const want = Date.UTC(y, mo - 1, d, h, mi, s);
+      let guess = want;
+      for (let i = 0; i < 3; i++) {
+        const diff = want - tzWallUtc(guess, tz);
+        if (diff === 0) break;
+        guess += diff;
+      }
+      return guess;
+    }
+
+    function renderHuman() {
+      out.hidden = true;
+      const v = dtIn.value;
+      const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(v);
+      if (!m) return;
+      const tz = tzSel.value === 'local' ? localTz : tzSel.value;
+      const ms = wallToEpoch(+m[1], +m[2], +m[3], +m[4], +m[5], +(m[6] ?? 0), tz);
+      $('t-out-s').textContent = String(Math.floor(ms / 1000));
+      $('t-out-ms').textContent = String(ms);
+      $('t-out-iso').textContent = new Date(ms).toISOString();
+      out.hidden = false;
+    }
+
+    dtIn.addEventListener('input', renderHuman);
+    tzSel.addEventListener('change', renderHuman);
+
+    document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const el = document.getElementById(btn.dataset.copy!);
+        if (el?.textContent) copyText(el.textContent, 'Value');
+      });
+    });
+
+    /* ---- chips ---- */
+    const toLocalInput = (d: Date) =>
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+    $('t-chip-now').addEventListener('click', () => {
+      const now = new Date();
+      epochIn.value = String(Math.floor(now.getTime() / 1000));
+      renderEpoch();
+      dtIn.value = toLocalInput(now);
+      renderHuman();
+      (window as any).toast?.('Filled with right now. ⏱');
+    });
+
+    // gentle default so the right panel isn't empty
+    dtIn.value = toLocalInput(new Date());
+    renderHuman();
+  }
+  document.addEventListener('astro:page-load', initTimeTraveler);
+  initTimeTraveler();
+</script>
+
+<style>
+  .now-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+  .now-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: var(--space-2) var(--space-3);
+    min-width: 0;
+  }
+  .now-cell.iso { grid-column: 1 / -1; }
+  .now-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .nrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  .now-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: var(--text-lg);
+    color: var(--chai);
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .now-cell.iso .now-num {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--ink);
+  }
+  @media (max-width: 560px) {
+    .now-grid { grid-template-columns: 1fr; }
+  }
+
+  .rel-line {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--text-md);
+    color: var(--chai);
+    margin-top: var(--space-3);
+  }
+
+  .zone-table { margin-top: var(--space-3); }
+  .zrow {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    gap: var(--space-2);
+    align-items: baseline;
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .zrow:first-child { border-top: 1px solid var(--line-soft); }
+  .zrow.local {
+    background: var(--chai-wash);
+    border-radius: var(--radius-sm);
+  }
+  .zrow.local .zname { color: var(--chai); }
+  .zname { overflow-wrap: anywhere; }
+  .zval {
+    font-variant-numeric: tabular-nums;
+    font-size: var(--text-sm);
+    color: var(--ink);
+  }
+  @media (max-width: 480px) {
+    .zrow { grid-template-columns: 1fr; gap: 0.1rem; }
+  }
+
+  .field-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: var(--space-3) 0 var(--space-2);
+  }
+  .field-label:first-of-type { margin-top: 0; }
+
+  .out-rows {
+    margin-top: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .out-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: 0.45em 0.7em;
+  }
+  .out-row .mono-label { width: 6.5rem; flex-shrink: 0; }
+  .out-row code {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+  }
+  @media (max-width: 480px) {
+    .out-row { flex-wrap: wrap; }
+    .out-row .mono-label { width: 100%; }
+  }
+</style>

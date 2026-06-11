@@ -1,0 +1,292 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Text Lab"
+  tagline="Counts, reading time, case changes, and clean-ups — your words stay yours."
+>
+  <div class="tool-body">
+    <div class="tool-row">
+      <button class="chip-btn" id="t-sample">Sample</button>
+      <button class="chip-btn" id="t-clear">Clear</button>
+      <span style="flex:1"></span>
+      <button class="chip-btn" id="t-copy">Copy</button>
+    </div>
+
+    <div class="tool-grid cols-2 text-grid">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Your text</span><span id="t-live"></span></div>
+        <textarea
+          id="t-in"
+          class="tool-textarea"
+          spellcheck="false"
+          aria-label="Text to analyze"
+          placeholder="Paste or type here… a paragraph, a poem, a grocery list with ambitions."></textarea>
+
+        <div class="chip-group" role="group" aria-label="Case conversions">
+          <span class="chip-group-label">case</span>
+          <button class="chip-btn" data-case="upper">UPPERCASE</button>
+          <button class="chip-btn" data-case="lower">lowercase</button>
+          <button class="chip-btn" data-case="title">Title Case</button>
+          <button class="chip-btn" data-case="sentence">Sentence case</button>
+          <button class="chip-btn" data-case="camel">camelCase</button>
+          <button class="chip-btn" data-case="snake">snake_case</button>
+          <button class="chip-btn" data-case="kebab">kebab-case</button>
+        </div>
+
+        <div class="chip-group" role="group" aria-label="Clean-up operations">
+          <span class="chip-group-label">clean-up</span>
+          <button class="chip-btn" data-clean="trim">Trim lines</button>
+          <button class="chip-btn" data-clean="collapse">Collapse spaces</button>
+          <button class="chip-btn" data-clean="noempty">Remove empty lines</button>
+          <button class="chip-btn" data-clean="dedupe">Dedupe lines</button>
+          <button class="chip-btn" data-clean="sort">Sort lines A→Z</button>
+          <button class="chip-btn" data-clean="reverse">Reverse lines</button>
+        </div>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Top words</span><span id="t-topnote"></span></div>
+        <div id="t-top" class="top-words">
+          <p class="top-empty">Your most-used words will queue up here, tallest pour first.</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="tool-row stat-strip">
+      <div class="stat-box"><b id="ts-words">0</b><span>words</span></div>
+      <div class="stat-box"><b id="ts-chars">0</b><span>characters</span></div>
+      <div class="stat-box"><b id="ts-nospace">0</b><span>no spaces</span></div>
+      <div class="stat-box"><b id="ts-sentences">0</b><span>sentences</span></div>
+      <div class="stat-box"><b id="ts-paras">0</b><span>paragraphs</span></div>
+      <div class="stat-box"><b id="ts-unique">0</b><span>unique words</span></div>
+      <div class="stat-box"><b id="ts-read">—</b><span>reading time</span></div>
+      <div class="stat-box"><b id="ts-speak">—</b><span>speaking time</span></div>
+    </div>
+
+    <p class="tool-note">Everything is computed right here in your browser — not a single word leaves the page.</p>
+  </div>
+</ToolLayout>
+
+<script>
+  function initTextLab() {
+    const input = document.getElementById('t-in') as HTMLTextAreaElement | null;
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const top = $('t-top');
+    const topNote = $('t-topnote');
+
+    const SAMPLE = `The first rule of good chai is patience. Crush the ginger, bruise the cardamom, and let the tea leaves argue with the milk until they reach an agreement.
+
+Somewhere between Udupi and San Francisco I learned the second rule: it is also patience. Calvin would call this boring; Hobbes would call it a ritual.
+
+Either way the cup empties, the page fills, and the words — like the chai — are better when you let them steep.`;
+
+    const STOPWORDS = new Set([
+      'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'was', 'were',
+      'her', 'his', 'she', 'him', 'has', 'had', 'have', 'this', 'that', 'with',
+      'they', 'them', 'their', 'there', 'from', 'will', 'would', 'could', 'should',
+      'what', 'which', 'when', 'where', 'who', 'whom', 'why', 'how', 'your',
+      'can', 'its', 'also', 'out', 'our', 'one', 'two', 'just', 'like', 'into',
+      'than', 'then', 'too', 'very', 'more', 'most', 'some', 'such', 'only',
+      'been', 'being', 'because', 'while', 'after', 'before', 'about', 'over',
+      'here', 'each', 'any', 'both', 'does', 'did', 'don', 'let',
+    ]);
+
+    const words = (text: string): string[] => text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? [];
+
+    function fmtTime(wordCount: number, wpm: number): string {
+      if (!wordCount) return '—';
+      return `~${Math.max(1, Math.round(wordCount / wpm))} min`;
+    }
+
+    function updateStats() {
+      const text = input!.value;
+      const ws = words(text);
+      const sentences = (text.match(/[^.!?]+[.!?]+/g) ?? (text.trim() ? [text] : [])).filter((s) => /\S/.test(s));
+      const paragraphs = text.split(/\n\s*\n/).filter((p) => p.trim());
+      const unique = new Set(ws.map((w) => w.toLowerCase()));
+
+      $('ts-words').textContent = ws.length.toLocaleString();
+      $('ts-chars').textContent = text.length.toLocaleString();
+      $('ts-nospace').textContent = text.replace(/\s/g, '').length.toLocaleString();
+      $('ts-sentences').textContent = sentences.length.toLocaleString();
+      $('ts-paras').textContent = paragraphs.length.toLocaleString();
+      $('ts-unique').textContent = unique.size.toLocaleString();
+      $('ts-read').textContent = fmtTime(ws.length, 215);
+      $('ts-speak').textContent = fmtTime(ws.length, 130);
+      $('t-live').textContent = ws.length ? `${ws.length.toLocaleString()} words` : '';
+
+      renderTopWords(ws);
+    }
+
+    function renderTopWords(ws: string[]) {
+      const freq = new Map<string, number>();
+      for (const raw of ws) {
+        const w = raw.toLowerCase();
+        if (w.length < 3 || STOPWORDS.has(w)) continue;
+        freq.set(w, (freq.get(w) ?? 0) + 1);
+      }
+      const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 10);
+
+      top.textContent = '';
+      topNote.textContent = ranked.length ? `top ${ranked.length}` : '';
+      if (!ranked.length) {
+        const p = document.createElement('p');
+        p.className = 'top-empty';
+        p.textContent = 'Your most-used words will queue up here, tallest pour first.';
+        top.appendChild(p);
+        return;
+      }
+      const max = ranked[0][1];
+      for (const [word, count] of ranked) {
+        const row = document.createElement('div');
+        row.className = 'top-row';
+        const label = document.createElement('span');
+        label.className = 'top-word';
+        label.textContent = word;
+        const bar = document.createElement('span');
+        bar.className = 'top-bar';
+        bar.style.width = `${Math.max(4, (count / max) * 100)}%`;
+        const n = document.createElement('span');
+        n.className = 'top-count';
+        n.textContent = String(count);
+        const track = document.createElement('span');
+        track.className = 'top-track';
+        track.appendChild(bar);
+        row.append(label, track, n);
+        top.appendChild(row);
+      }
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    input.addEventListener('input', () => { clearTimeout(t); t = setTimeout(updateStats, 200); });
+
+    /* ---- case conversions ---- */
+    const tokens = (line: string) => line.match(/[\p{L}\p{N}]+/gu) ?? [];
+    const perLine = (text: string, fn: (line: string) => string) => text.split('\n').map(fn).join('\n');
+
+    const CASES: Record<string, (s: string) => string> = {
+      upper: (s) => s.toUpperCase(),
+      lower: (s) => s.toLowerCase(),
+      title: (s) => s.replace(/[\p{L}\p{N}][\p{L}\p{N}'’]*/gu, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()),
+      sentence: (s) =>
+        s.toLowerCase().replace(/(^\s*|[.!?]\s+|\n\s*)(\p{L})/gu, (_, lead, ch) => lead + ch.toUpperCase()),
+      camel: (s) =>
+        perLine(s, (line) =>
+          tokens(line)
+            .map((w, i) => (i === 0 ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase()))
+            .join('')),
+      snake: (s) => perLine(s, (line) => tokens(line).join('_').toLowerCase()),
+      kebab: (s) => perLine(s, (line) => tokens(line).join('-').toLowerCase()),
+    };
+
+    /* ---- clean-ups ---- */
+    const lines = (s: string) => s.split('\n');
+    const CLEANUPS: Record<string, { fn: (s: string) => string; toast: string }> = {
+      trim: { fn: (s) => lines(s).map((l) => l.trim()).join('\n'), toast: 'Lines trimmed, edges tidy.' },
+      collapse: { fn: (s) => s.replace(/[ \t]{2,}/g, ' '), toast: 'Extra spaces collapsed.' },
+      noempty: { fn: (s) => lines(s).filter((l) => l.trim()).join('\n'), toast: 'Empty lines swept away.' },
+      dedupe: { fn: (s) => [...new Set(lines(s))].join('\n'), toast: 'Duplicate lines deduped.' },
+      sort: { fn: (s) => lines(s).sort((a, b) => a.localeCompare(b)).join('\n'), toast: 'Lines sorted A→Z.' },
+      reverse: { fn: (s) => lines(s).reverse().join('\n'), toast: 'Lines flipped end over end.' },
+    };
+
+    document.querySelectorAll<HTMLButtonElement>('[data-case]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        input!.value = CASES[btn.dataset.case!](input!.value);
+        updateStats();
+      }));
+
+    document.querySelectorAll<HTMLButtonElement>('[data-clean]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const { fn, toast } = CLEANUPS[btn.dataset.clean!];
+        input!.value = fn(input!.value);
+        updateStats();
+        (window as any).toast?.(toast);
+      }));
+
+    $('t-sample').addEventListener('click', () => { input!.value = SAMPLE; updateStats(); });
+    $('t-clear').addEventListener('click', () => { input!.value = ''; updateStats(); input!.focus(); });
+    $('t-copy').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(input!.value);
+      (window as any).toast?.('Text copied. 📋');
+    });
+
+    updateStats();
+  }
+  document.addEventListener('astro:page-load', initTextLab);
+  initTextLab();
+</script>
+
+<style>
+  .tool-grid.cols-2.text-grid { grid-template-columns: 3fr 2fr; }
+  @media (max-width: 800px) {
+    .tool-grid.cols-2.text-grid { grid-template-columns: 1fr; }
+  }
+
+  .chip-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+  }
+  .chip-group-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    min-width: 5.5em;
+  }
+
+  .top-words {
+    min-height: 12rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding-top: 0.25rem;
+  }
+  .top-words :global(.top-empty) {
+    color: var(--ink-faint);
+    font-size: var(--text-sm);
+    font-style: italic;
+    margin-top: var(--space-2);
+  }
+  .top-words :global(.top-row) {
+    display: grid;
+    grid-template-columns: minmax(5.5em, auto) 1fr 2.2em;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .top-words :global(.top-word) {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .top-words :global(.top-track) {
+    height: 0.55rem;
+    border-radius: 999px;
+    background: var(--paper-deep);
+    overflow: hidden;
+  }
+  .top-words :global(.top-bar) {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--chai) 70%, var(--paper-raise));
+    transition: width 0.35s var(--ease-spring);
+  }
+  .top-words :global(.top-count) {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--ink-faint);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

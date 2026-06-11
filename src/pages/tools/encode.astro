@@ -1,0 +1,468 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Encoder Ring"
+  tagline="Base64, URLs, entities, and JWTs — decoded where no one can see."
+>
+  <div class="tool-body" id="enc-root">
+    <div class="tool-row">
+      <button class="chip-btn active" data-mode="b64">Base64</button>
+      <button class="chip-btn" data-mode="url">URL</button>
+      <button class="chip-btn" data-mode="html">HTML entities</button>
+      <button class="chip-btn" data-mode="jwt">JWT</button>
+      <span style="flex:1"></span>
+      <span class="dir-wrap" id="e-dir-wrap">
+        <button class="chip-btn active" id="e-enc">Encode</button>
+        <button class="chip-btn" id="e-dec">Decode</button>
+      </span>
+    </div>
+
+    <div class="tool-grid cols-2" id="e-duo">
+      <section class="tool-panel">
+        <div class="panel-label">
+          <label for="e-in">Input</label>
+          <span id="e-in-size"></span>
+        </div>
+        <textarea
+          id="e-in"
+          class="tool-textarea"
+          spellcheck="false"
+          placeholder="Type anything — “one cutting chai, extra ginger” works."></textarea>
+        <p class="tool-error" id="e-err" hidden></p>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label">
+          <label for="e-out">Output</label>
+          <span id="e-out-size"></span>
+        </div>
+        <textarea
+          id="e-out"
+          class="tool-textarea"
+          readonly
+          spellcheck="false"
+          placeholder="Output appears here, quietly."></textarea>
+      </section>
+    </div>
+
+    <div class="jwt-wrap" id="e-jwt" hidden>
+      <section class="tool-panel">
+        <div class="panel-label"><label for="e-token">Token</label></div>
+        <textarea
+          id="e-token"
+          class="tool-textarea jwt-token"
+          spellcheck="false"
+          placeholder="Paste a JWT — three Base64URL parts joined by dots, like a very serious haiku."></textarea>
+        <p class="tool-error" id="e-jwt-err" hidden></p>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Header</span></div>
+        <pre class="jwt-json" id="e-jwt-header">…</pre>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Payload</span></div>
+        <pre class="jwt-json" id="e-jwt-payload">…</pre>
+        <div class="jwt-times" id="e-jwt-times" hidden></div>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Signature</span></div>
+        <pre class="jwt-json jwt-sig" id="e-jwt-sig">…</pre>
+        <p class="tool-note">
+          Decoded, not verified — this tool can't check the signature, and your token never
+          leaves this page.
+        </p>
+      </section>
+    </div>
+
+    <div class="tool-row">
+      <button class="chip-btn" id="e-copy">Copy output</button>
+      <button class="chip-btn" id="e-swap">Swap ⇄</button>
+      <button class="chip-btn" id="e-clear">Clear</button>
+      <button class="chip-btn" id="e-sample">Sample</button>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  function initEncoderRing() {
+    const root = document.getElementById('enc-root');
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const input = $('e-in') as HTMLTextAreaElement;
+    const output = $('e-out') as HTMLTextAreaElement;
+    const token = $('e-token') as HTMLTextAreaElement;
+    const err = $('e-err');
+    const jwtErr = $('e-jwt-err');
+    const duo = $('e-duo');
+    const jwtWrap = $('e-jwt');
+    const dirWrap = $('e-dir-wrap');
+    const inSize = $('e-in-size');
+    const outSize = $('e-out-size');
+    const jwtHeader = $('e-jwt-header');
+    const jwtPayload = $('e-jwt-payload');
+    const jwtTimes = $('e-jwt-times');
+    const jwtSig = $('e-jwt-sig');
+    const encBtn = $('e-enc');
+    const decBtn = $('e-dec');
+    const swapBtn = $('e-swap');
+
+    type Mode = 'b64' | 'url' | 'html' | 'jwt';
+    type Dir = 'encode' | 'decode';
+    let mode: Mode = 'b64';
+    let dir: Dir = 'encode';
+    let lastPayloadPretty = '';
+
+    /* ---- codecs ---- */
+    const CHUNK = 0x8000;
+    function b64encode(s: string): string {
+      const bytes = new TextEncoder().encode(s);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+      }
+      return btoa(bin);
+    }
+    function b64decode(s: string): string {
+      const clean = s.replace(/\s+/g, '');
+      const bin = atob(clean);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+    function b64urlDecode(s: string): string {
+      let t = s.replace(/-/g, '+').replace(/_/g, '/');
+      while (t.length % 4) t += '=';
+      return b64decode(t);
+    }
+    const b64urlEncode = (s: string) =>
+      b64encode(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const ESC: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    const htmlEncode = (s: string) => s.replace(/[&<>"']/g, (c) => ESC[c]);
+    function htmlDecode(s: string): string {
+      const ta = document.createElement('textarea');
+      ta.innerHTML = s; // textarea content is inert text — nothing can execute here
+      return ta.value;
+    }
+
+    /* ---- mode chrome ---- */
+    const SAMPLES: Record<Exclude<Mode, 'jwt'>, string> = {
+      b64: 'One cutting chai in Udupi, please — extra ginger. ☕',
+      url: 'https://example.com/order?drink=masala chai&city=Bengaluru&sugar=2&note=less foam, more cardamom',
+      html: '<blockquote class="chai">"Strong & sweet" — the only <em>valid</em> brew config</blockquote>',
+    };
+    const PH: Record<Exclude<Mode, 'jwt'>, Record<Dir, string>> = {
+      b64: {
+        encode: 'Type anything — “one cutting chai, extra ginger” works.',
+        decode: 'Paste Base64 here… try Q2hhaSBmaXJzdC4=',
+      },
+      url: {
+        encode: 'A URL or query value — spaces, ampersands, the works.',
+        decode: 'Paste a percent-encoded string… masala%20chai and friends.',
+      },
+      html: {
+        encode: 'Markup to make safe: <b>chai</b> & co.',
+        decode: 'Entities to unwrap: &lt;b&gt;chai&lt;/b&gt; &amp; co.',
+      },
+    };
+
+    function applyEncode(raw: string): string {
+      if (mode === 'b64') return dir === 'encode' ? b64encode(raw) : b64decode(raw);
+      if (mode === 'url') return dir === 'encode' ? encodeURIComponent(raw) : decodeURIComponent(raw);
+      return dir === 'encode' ? htmlEncode(raw) : htmlDecode(raw);
+    }
+
+    const bytesOf = (s: string) =>
+      s ? `${new Blob([s]).size.toLocaleString()} bytes` : '';
+
+    function convert() {
+      err.hidden = true;
+      const raw = input.value;
+      inSize.textContent = bytesOf(raw);
+      if (!raw) {
+        output.value = '';
+        outSize.textContent = '';
+        return;
+      }
+      try {
+        output.value = applyEncode(raw);
+        outSize.textContent = bytesOf(output.value);
+      } catch (e: any) {
+        output.value = '';
+        outSize.textContent = '';
+        err.textContent =
+          mode === 'b64'
+            ? '✗ That doesn’t look like valid Base64 — check for stray characters or missing padding.'
+            : `✗ ${e?.message ?? 'Could not convert that input.'}`;
+        err.hidden = false;
+      }
+    }
+
+    /* ---- JWT ---- */
+    function colorJson(obj: unknown): string {
+      const escd = JSON.stringify(obj, null, 2)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      return escd.replace(/^(\s*)("(?:[^"\\]|\\.)*")(?=:)/gm, '$1<span class="jk">$2</span>');
+    }
+
+    function spanText(ms: number): string {
+      const abs = Math.abs(ms);
+      const MIN = 60_000, HOUR = 3_600_000, DAY = 86_400_000;
+      if (abs >= DAY) { const n = Math.round(abs / DAY); return `${n} day${n === 1 ? '' : 's'}`; }
+      if (abs >= HOUR) { const n = Math.round(abs / HOUR); return `${n} hour${n === 1 ? '' : 's'}`; }
+      if (abs >= MIN) { const n = Math.round(abs / MIN); return `${n} minute${n === 1 ? '' : 's'}`; }
+      return 'moments';
+    }
+
+    function claimLine(name: 'iat' | 'exp' | 'nbf', sec: number): string {
+      const now = Date.now();
+      const ms = sec * 1000;
+      const human = new Date(ms).toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+      const span = spanText(ms - now);
+      let rel = '';
+      if (name === 'exp') rel = ms > now ? `expires in ${span}` : `expired ${span} ago`;
+      else if (name === 'iat') rel = ms <= now ? `issued ${span} ago` : `issued ${span} from now (clock skew?)`;
+      else rel = ms > now ? `not valid for another ${span}` : `valid since ${span} ago`;
+      return `${name} · ${human} — ${rel}`;
+    }
+
+    function resetJwtPanels(msg = '…') {
+      jwtHeader.textContent = msg;
+      jwtPayload.textContent = msg;
+      jwtSig.textContent = msg;
+      jwtTimes.hidden = true;
+      jwtTimes.textContent = '';
+      lastPayloadPretty = '';
+    }
+
+    function renderJwt() {
+      jwtErr.hidden = true;
+      const raw = token.value.trim();
+      if (!raw) {
+        resetJwtPanels();
+        return;
+      }
+      const parts = raw.split('.');
+      if (parts.length !== 3) {
+        resetJwtPanels('—');
+        jwtErr.textContent = `✗ A JWT has three dot-separated parts — found ${parts.length}.`;
+        jwtErr.hidden = false;
+        return;
+      }
+      lastPayloadPretty = '';
+
+      try {
+        jwtHeader.innerHTML = colorJson(JSON.parse(b64urlDecode(parts[0])));
+      } catch {
+        jwtHeader.textContent = '✗ Header is not valid Base64URL-encoded JSON.';
+      }
+
+      jwtTimes.hidden = true;
+      jwtTimes.textContent = '';
+      try {
+        const payload = JSON.parse(b64urlDecode(parts[1]));
+        jwtPayload.innerHTML = colorJson(payload);
+        lastPayloadPretty = JSON.stringify(payload, null, 2);
+        if (payload && typeof payload === 'object') {
+          const lines: string[] = [];
+          for (const name of ['iat', 'nbf', 'exp'] as const) {
+            const v = (payload as Record<string, unknown>)[name];
+            if (typeof v === 'number' && Number.isFinite(v)) lines.push(claimLine(name, v));
+          }
+          if (lines.length) {
+            jwtTimes.hidden = false;
+            for (const line of lines) {
+              const div = document.createElement('div');
+              div.textContent = line;
+              jwtTimes.appendChild(div);
+            }
+          }
+        }
+      } catch {
+        jwtPayload.textContent = '✗ Payload is not valid Base64URL-encoded JSON.';
+      }
+
+      jwtSig.textContent = parts[2] || '(empty — an unsigned “alg: none” token)';
+    }
+
+    function makeSampleJwt(): string {
+      const now = Math.floor(Date.now() / 1000);
+      const header = { alg: 'HS256', typ: 'JWT' };
+      const payload = { name: 'Calvin', brew: 'cardamom chai', iat: now, exp: now + 48 * 3600 };
+      return [
+        b64urlEncode(JSON.stringify(header)),
+        b64urlEncode(JSON.stringify(payload)),
+        'ZmFrZS1zaWduYXR1cmUtanVzdC1mb3Itc2hvdw',
+      ].join('.');
+    }
+
+    /* ---- wiring ---- */
+    function syncMode() {
+      const isJwt = mode === 'jwt';
+      duo.hidden = isJwt;
+      jwtWrap.hidden = !isJwt;
+      dirWrap.hidden = isJwt;
+      swapBtn.hidden = isJwt;
+      if (isJwt) {
+        renderJwt();
+      } else {
+        input.placeholder = PH[mode as Exclude<Mode, 'jwt'>][dir];
+        convert();
+      }
+    }
+
+    const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-mode]'));
+    modeBtns.forEach((b) =>
+      b.addEventListener('click', () => {
+        mode = b.dataset.mode as Mode;
+        modeBtns.forEach((x) => x.classList.toggle('active', x === b));
+        syncMode();
+      })
+    );
+
+    function setDir(d: Dir) {
+      dir = d;
+      encBtn.classList.toggle('active', d === 'encode');
+      decBtn.classList.toggle('active', d === 'decode');
+      if (mode !== 'jwt') {
+        input.placeholder = PH[mode][dir];
+        convert();
+      }
+      // (mode is narrowed to non-jwt above, so PH[mode] is safe)
+    }
+    encBtn.addEventListener('click', () => setDir('encode'));
+    decBtn.addEventListener('click', () => setDir('decode'));
+
+    let t: ReturnType<typeof setTimeout>;
+    input.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(convert, 250);
+    });
+    let tj: ReturnType<typeof setTimeout>;
+    token.addEventListener('input', () => {
+      clearTimeout(tj);
+      tj = setTimeout(renderJwt, 250);
+    });
+
+    $('e-copy').addEventListener('click', async () => {
+      const text = mode === 'jwt' ? lastPayloadPretty : output.value;
+      if (!text) {
+        (window as any).toast?.('Nothing to copy yet.');
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      (window as any).toast?.(mode === 'jwt' ? 'Payload JSON copied. 📋' : 'Output copied. 📋');
+    });
+
+    swapBtn.addEventListener('click', () => {
+      if (!output.value) {
+        (window as any).toast?.('No output to swap yet.');
+        return;
+      }
+      input.value = output.value;
+      setDir(dir === 'encode' ? 'decode' : 'encode'); // re-converts
+      (window as any).toast?.('Swapped — direction flipped to match.');
+    });
+
+    $('e-clear').addEventListener('click', () => {
+      input.value = '';
+      output.value = '';
+      token.value = '';
+      err.hidden = true;
+      jwtErr.hidden = true;
+      inSize.textContent = '';
+      outSize.textContent = '';
+      resetJwtPanels();
+    });
+
+    $('e-sample').addEventListener('click', () => {
+      if (mode === 'jwt') {
+        token.value = makeSampleJwt();
+        renderJwt();
+      } else {
+        const s = SAMPLES[mode as Exclude<Mode, 'jwt'>];
+        input.value = dir === 'encode' ? s : applySampleEncode(s);
+        convert();
+      }
+    });
+    function applySampleEncode(s: string): string {
+      if (mode === 'b64') return b64encode(s);
+      if (mode === 'url') return encodeURIComponent(s);
+      return htmlEncode(s);
+    }
+  }
+  document.addEventListener('astro:page-load', initEncoderRing);
+  initEncoderRing();
+</script>
+
+<style>
+  /* hidden must win over our display rules and global .tool-grid */
+  #e-duo[hidden],
+  .jwt-wrap[hidden],
+  .dir-wrap[hidden] {
+    display: none;
+  }
+  .dir-wrap {
+    display: inline-flex;
+    gap: var(--space-2);
+  }
+  .jwt-wrap {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .jwt-token {
+    min-height: 7rem;
+    word-break: break-all;
+  }
+  .jwt-json {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: 0.75em 0.9em;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+  }
+  .jwt-json :global(.jk) {
+    color: var(--chai);
+  }
+  .jwt-sig {
+    word-break: break-all;
+    color: var(--ink-soft);
+  }
+  .jwt-times {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.03em;
+    color: var(--ink-faint);
+    margin-top: var(--space-2);
+    border-top: 1px dashed var(--line-soft);
+    padding-top: var(--space-2);
+  }
+  .jwt-times > :global(div) {
+    padding-block: 0.15em;
+  }
+</style>

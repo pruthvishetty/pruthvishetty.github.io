@@ -1,0 +1,203 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  name: string;
+  tagline: string;
+  description?: string;
+}
+
+const { name, tagline, description } = Astro.props;
+---
+
+<BaseLayout
+  title={`${name} — free, private, in-browser · Pruthvi Shetty`}
+  description={description ?? `${name}: ${tagline}. A free tool that runs entirely in your browser — your data never leaves your device.`}
+>
+  <div class="tool-shell wrap">
+    <header class="tool-head">
+      <a href="/tools/" class="back mono-label">← all tools</a>
+      <div class="tool-title-row">
+        <h1>{name}</h1>
+        <span class="privacy-pill" title="Open the Network tab — nothing leaves this page.">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2 4 5.5v5c0 5 3.4 9.2 8 11 4.6-1.8 8-6 8-11v-5L12 2Z" />
+          </svg>
+          100% in your browser
+        </span>
+      </div>
+      <p class="tool-tagline">{tagline}</p>
+    </header>
+
+    <slot />
+  </div>
+</BaseLayout>
+
+<style is:global>
+  /* ============ shared tool chrome — used by every tool page ============ */
+  [hidden] { display: none !important; }
+
+  .tool-shell {
+    padding-block: clamp(2rem, 5vh, 3.5rem) var(--space-6);
+  }
+  .tool-head .back {
+    text-decoration: none;
+    color: var(--ink-faint);
+    letter-spacing: 0.12em;
+  }
+  .tool-head .back:hover { color: var(--chai); }
+  .tool-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+  }
+  .tool-title-row h1 { font-size: var(--text-xl); }
+  .privacy-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.04em;
+    color: var(--cardamom);
+    border: 1px solid color-mix(in srgb, var(--cardamom) 45%, transparent);
+    border-radius: 999px;
+    padding: 0.25em 0.9em;
+    background: color-mix(in srgb, var(--cardamom) 9%, transparent);
+  }
+  .tool-tagline {
+    color: var(--ink-soft);
+    margin-top: var(--space-2);
+    max-width: 60ch;
+  }
+
+  .tool-body { margin-top: var(--space-5); }
+
+  .tool-grid {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .tool-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 800px) {
+    .tool-grid.cols-2 { grid-template-columns: 1fr; }
+  }
+
+  .tool-panel {
+    background: var(--paper-raise);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+    min-width: 0;
+  }
+  .panel-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: var(--space-2);
+  }
+
+  .tool-textarea,
+  .tool-input,
+  .tool-select {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: 0.75em 0.9em;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+  .tool-textarea { min-height: 16rem; }
+  .tool-textarea:focus,
+  .tool-input:focus,
+  .tool-select:focus {
+    outline: none;
+    border-color: var(--chai);
+  }
+  .tool-textarea::placeholder, .tool-input::placeholder { color: var(--ink-faint); opacity: 0.7; }
+
+  .tool-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-block: var(--space-3);
+  }
+
+  .chip-btn {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.04em;
+    border: 1px solid var(--line);
+    background: var(--paper-raise);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 0.4em 1em;
+    cursor: pointer;
+    transition: all 0.2s var(--ease-smooth);
+  }
+  .chip-btn:hover { border-color: var(--chai); color: var(--chai); }
+  .chip-btn.active {
+    background: var(--chai);
+    border-color: var(--chai);
+    color: var(--paper);
+  }
+
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: var(--space-2);
+  }
+  .stat-box {
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+  }
+  .stat-box b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--chai);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-box span {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .tool-error {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: #b3261e;
+    background: #b3261e14;
+    border: 1px solid #b3261e33;
+    border-radius: var(--radius);
+    padding: 0.6em 1em;
+    margin-top: var(--space-2);
+  }
+  html.dark .tool-error { color: #ff8a80; }
+
+  .tool-note {
+    font-size: var(--text-sm);
+    color: var(--ink-faint);
+    margin-top: var(--space-3);
+  }
+</style>

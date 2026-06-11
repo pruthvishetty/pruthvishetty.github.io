@@ -1,0 +1,504 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Color Studio"
+  tagline="Convert, harmonize, and contrast-check — the whole rainbow, offline."
+>
+  <div class="tool-body" id="cl-root">
+    <section class="tool-panel">
+      <div class="panel-label"><span>Pick a color</span></div>
+      <div class="pick-row">
+        <input type="color" id="c-pick" class="big-swatch" value="#a8521d" aria-label="Color picker" />
+        <div class="pick-text">
+          <label class="c-label" for="c-hex">Hex</label>
+          <input
+            id="c-hex"
+            class="tool-input"
+            type="text"
+            value="#a8521d"
+            placeholder="#a8521d — chai, naturally"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <p class="tool-error" id="c-err" hidden>That's not quite a hex — try #a8521d or #fa3.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="tool-grid cols-2">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Conversions</span></div>
+        <div class="conv-rows">
+          <div class="conv-row">
+            <span class="conv-name">HEX</span>
+            <code class="conv-val" id="v-hex"></code>
+            <button class="chip-btn" data-copy="v-hex">Copy</button>
+          </div>
+          <div class="conv-row">
+            <span class="conv-name">RGB</span>
+            <code class="conv-val" id="v-rgb"></code>
+            <button class="chip-btn" data-copy="v-rgb">Copy</button>
+          </div>
+          <div class="conv-row">
+            <span class="conv-name">HSL</span>
+            <code class="conv-val" id="v-hsl"></code>
+            <button class="chip-btn" data-copy="v-hsl">Copy</button>
+          </div>
+          <div class="conv-row">
+            <span class="conv-name">CMYK</span>
+            <code class="conv-val" id="v-cmyk"></code>
+            <button class="chip-btn" data-copy="v-cmyk">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Harmonies</span><span>click a swatch to copy</span></div>
+        <p class="harm-name">Complementary</p>
+        <div class="swatches" id="h-comp"></div>
+        <p class="harm-name">Analogous · ±30°</p>
+        <div class="swatches" id="h-ana"></div>
+        <p class="harm-name">Triadic</p>
+        <div class="swatches" id="h-tri"></div>
+        <p class="harm-name">Tints &amp; shades</p>
+        <div class="swatches scale" id="h-scale"></div>
+      </section>
+    </div>
+
+    <section class="tool-panel">
+      <div class="panel-label"><span>Contrast checker</span></div>
+      <div class="contrast-grid">
+        <div class="contrast-controls">
+          <label class="c-label" for="ct-fg-pick">Text color</label>
+          <div class="ct-pair">
+            <input type="color" id="ct-fg-pick" class="mini-swatch" value="#a8521d" aria-label="Text color picker" />
+            <input id="ct-fg-hex" class="tool-input" type="text" value="#a8521d" spellcheck="false" autocomplete="off" aria-label="Text color hex" />
+          </div>
+          <label class="c-label" for="ct-bg-pick">Background</label>
+          <div class="ct-pair">
+            <input type="color" id="ct-bg-pick" class="mini-swatch" value="#faf6ee" aria-label="Background color picker" />
+            <input id="ct-bg-hex" class="tool-input" type="text" value="#faf6ee" spellcheck="false" autocomplete="off" aria-label="Background color hex" />
+          </div>
+        </div>
+
+        <div class="contrast-preview" id="ct-preview">
+          <p class="cp-normal">Chai is always the answer.</p>
+          <p class="cp-large">Chai is always the answer.</p>
+        </div>
+
+        <div class="contrast-result">
+          <b class="ct-ratio" id="ct-ratio">—</b>
+          <span class="mono-label">contrast ratio</span>
+          <div class="badges" role="status" aria-live="polite">
+            <span class="wcag-chip" id="ct-aa">AA</span>
+            <span class="wcag-chip" id="ct-aal">AA Large</span>
+            <span class="wcag-chip" id="ct-aaa">AAA</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tool-row stat-strip">
+      <div class="stat-box"><b id="s-lum">—</b><span>relative luminance</span></div>
+      <div class="stat-box"><b id="s-bright">—</b><span>perceived brightness</span></div>
+      <div class="stat-box"><b id="s-hue">—</b><span>hue</span></div>
+      <div class="stat-box"><b id="s-sat">—</b><span>saturation</span></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  type RGB = { r: number; g: number; b: number };
+  type HSL = { h: number; s: number; l: number };
+
+  function initColorStudio() {
+    const root = document.getElementById('cl-root');
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const pick = $('c-pick') as HTMLInputElement;
+    const hexIn = $('c-hex') as HTMLInputElement;
+    const err = $('c-err');
+
+    /* ---------- color math ---------- */
+    function parseHex(s: string): RGB | null {
+      const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s.trim());
+      if (!m) return null;
+      let h = m[1];
+      if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+      return {
+        r: parseInt(h.slice(0, 2), 16),
+        g: parseInt(h.slice(2, 4), 16),
+        b: parseInt(h.slice(4, 6), 16),
+      };
+    }
+    const toHex = ({ r, g, b }: RGB) =>
+      '#' + [r, g, b].map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('');
+
+    function rgbToHsl({ r, g, b }: RGB): HSL {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      const l = (max + min) / 2;
+      let h = 0, s = 0;
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h *= 60;
+      }
+      return { h, s, l };
+    }
+
+    function hslToRgb({ h, s, l }: HSL): RGB {
+      h = (((h % 360) + 360) % 360) / 360;
+      if (s === 0) {
+        const v = Math.round(l * 255);
+        return { r: v, g: v, b: v };
+      }
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      const hue = (t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+      return {
+        r: Math.round(hue(h + 1 / 3) * 255),
+        g: Math.round(hue(h) * 255),
+        b: Math.round(hue(h - 1 / 3) * 255),
+      };
+    }
+
+    function rgbToCmyk({ r, g, b }: RGB) {
+      r /= 255; g /= 255; b /= 255;
+      const k = 1 - Math.max(r, g, b);
+      if (k === 1) return { c: 0, m: 0, y: 0, k: 1 };
+      return { c: (1 - r - k) / (1 - k), m: (1 - g - k) / (1 - k), y: (1 - b - k) / (1 - k), k };
+    }
+
+    // WCAG relative luminance
+    function luminance({ r, g, b }: RGB) {
+      const f = (v: number) => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    }
+    const contrast = (a: number, b: number) =>
+      (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    // HSP perceived brightness
+    const brightness = ({ r, g, b }: RGB) =>
+      Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b) / 255;
+
+    // readable label color for a swatch (site ink on light, site paper on dark)
+    const labelFor = (rgb: RGB) => (luminance(rgb) > 0.4 ? '#221d18' : '#faf6ee');
+
+    /* ---------- copy helper ---------- */
+    const copy = async (text: string) => {
+      await navigator.clipboard.writeText(text);
+      (window as any).toast?.(`${text} copied. 📋`);
+    };
+    root.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) =>
+      btn.addEventListener('click', () => copy($(btn.dataset.copy!).textContent ?? ''))
+    );
+
+    /* ---------- swatches ---------- */
+    function renderSwatches(containerId: string, hues: HSL[]) {
+      const box = $(containerId);
+      box.textContent = '';
+      for (const hsl of hues) {
+        const rgb = hslToRgb(hsl);
+        const hex = toHex(rgb);
+        const b = document.createElement('button');
+        b.className = 'swatch';
+        b.style.background = hex;
+        b.style.color = labelFor(rgb);
+        b.setAttribute('aria-label', `Copy ${hex}`);
+        b.title = `Copy ${hex}`;
+        const span = document.createElement('span');
+        span.textContent = hex;
+        b.appendChild(span);
+        b.addEventListener('click', () => copy(hex));
+        box.appendChild(b);
+      }
+    }
+
+    /* ---------- contrast checker ---------- */
+    const ctFgPick = $('ct-fg-pick') as HTMLInputElement;
+    const ctFgHex = $('ct-fg-hex') as HTMLInputElement;
+    const ctBgPick = $('ct-bg-pick') as HTMLInputElement;
+    const ctBgHex = $('ct-bg-hex') as HTMLInputElement;
+
+    function renderContrast() {
+      const fg = parseHex(ctFgHex.value);
+      const bg = parseHex(ctBgHex.value);
+      if (!fg || !bg) return;
+      const preview = $('ct-preview');
+      preview.style.background = toHex(bg);
+      preview.style.color = toHex(fg);
+      const ratio = contrast(luminance(fg), luminance(bg));
+      $('ct-ratio').textContent = `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1`;
+      const grade = (id: string, name: string, ok: boolean) => {
+        const chip = $(id);
+        chip.textContent = `${name} ${ok ? '✓' : '✗'}`;
+        chip.classList.toggle('pass', ok);
+        chip.classList.toggle('fail', !ok);
+        chip.setAttribute('aria-label', `WCAG ${name}: ${ok ? 'pass' : 'fail'}`);
+      };
+      grade('ct-aa', 'AA', ratio >= 4.5);
+      grade('ct-aal', 'AA Large', ratio >= 3);
+      grade('ct-aaa', 'AAA', ratio >= 7);
+    }
+
+    // keep a picker + hex text input in sync, then re-render
+    function bindPair(pickEl: HTMLInputElement, hexEl: HTMLInputElement) {
+      pickEl.addEventListener('input', () => {
+        hexEl.value = pickEl.value;
+        renderContrast();
+      });
+      hexEl.addEventListener('input', () => {
+        const rgb = parseHex(hexEl.value);
+        if (!rgb) return;
+        pickEl.value = toHex(rgb);
+        renderContrast();
+      });
+    }
+    bindPair(ctFgPick, ctFgHex);
+    bindPair(ctBgPick, ctBgHex);
+
+    /* ---------- main render ---------- */
+    function render(rgb: RGB) {
+      const hex = toHex(rgb);
+      const { h, s, l } = rgbToHsl(rgb);
+      const { c, m, y, k } = rgbToCmyk(rgb);
+      const pc = (v: number) => `${Math.round(v * 100)}%`;
+
+      $('v-hex').textContent = hex;
+      $('v-rgb').textContent = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      $('v-hsl').textContent = `hsl(${Math.round(h)}, ${pc(s)}, ${pc(l)})`;
+      $('v-cmyk').textContent = `cmyk(${pc(c)}, ${pc(m)}, ${pc(y)}, ${pc(k)})`;
+
+      renderSwatches('h-comp', [{ h, s, l }, { h: h + 180, s, l }]);
+      renderSwatches('h-ana', [{ h: h - 30, s, l }, { h, s, l }, { h: h + 30, s, l }]);
+      renderSwatches('h-tri', [{ h, s, l }, { h: h + 120, s, l }, { h: h + 240, s, l }]);
+      renderSwatches(
+        'h-scale',
+        Array.from({ length: 9 }, (_, i) => ({ h, s, l: 0.92 - i * 0.1 }))
+      );
+
+      const lum = luminance(rgb);
+      $('s-lum').textContent = lum.toFixed(3);
+      $('s-bright').textContent = `${Math.round(brightness(rgb) * 100)}%`;
+      $('s-hue').textContent = `${Math.round(((h % 360) + 360) % 360)}°`;
+      $('s-sat').textContent = pc(s);
+
+      // the checker's text color follows the current color
+      ctFgPick.value = hex;
+      ctFgHex.value = hex;
+      renderContrast();
+    }
+
+    function apply(hex: string, fromHexInput = false) {
+      const rgb = parseHex(hex);
+      if (!rgb) {
+        if (fromHexInput) err.hidden = false;
+        return;
+      }
+      err.hidden = true;
+      pick.value = toHex(rgb);
+      if (!fromHexInput) hexIn.value = toHex(rgb);
+      render(rgb);
+    }
+
+    pick.addEventListener('input', () => apply(pick.value));
+    let t: ReturnType<typeof setTimeout>;
+    hexIn.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        if (!hexIn.value.trim()) {
+          err.hidden = true; // an empty field isn't a bad hex
+          return;
+        }
+        apply(hexIn.value, true);
+      }, 300);
+    });
+
+    apply(pick.value);
+  }
+  document.addEventListener('astro:page-load', initColorStudio);
+  initColorStudio();
+</script>
+
+<style>
+  .c-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: var(--space-1);
+  }
+
+  .pick-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .pick-text { flex: 1; min-width: 0; }
+  .big-swatch,
+  .mini-swatch {
+    padding: 0.25rem;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    background: var(--paper);
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .big-swatch { width: 4.4rem; height: 4.4rem; flex-shrink: 0; }
+  .mini-swatch { width: 3rem; height: 2.7rem; flex-shrink: 0; }
+  .big-swatch:hover, .big-swatch:focus,
+  .mini-swatch:hover, .mini-swatch:focus { border-color: var(--chai); }
+
+  /* conversions */
+  .conv-rows { display: flex; flex-direction: column; }
+  .conv-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .conv-row:last-child { border-bottom: none; }
+  .conv-name {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    width: 3.6em;
+    flex-shrink: 0;
+  }
+  .conv-val {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--ink);
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* harmonies */
+  .harm-name {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-block: var(--space-2) var(--space-1);
+  }
+  .harm-name:first-of-type { margin-top: 0; }
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: var(--space-1);
+  }
+  .swatches.scale { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
+  .swatches :global(.swatch) {
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    height: 3.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0.3rem;
+    transition: transform 0.2s var(--ease-spring);
+  }
+  .swatches :global(.swatch:hover) { transform: translateY(-2px); }
+  .swatches :global(.swatch span) {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .swatches :global(.swatch:hover span),
+  .swatches :global(.swatch:focus-visible span) { opacity: 1; }
+  .swatches.scale :global(.swatch) { height: 2.6rem; }
+
+  /* contrast checker */
+  .contrast-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  @media (max-width: 800px) {
+    .contrast-grid { grid-template-columns: 1fr; }
+  }
+  .contrast-controls { display: flex; flex-direction: column; }
+  .ct-pair {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+  .ct-pair .tool-input { width: 8.5em; }
+  .contrast-preview {
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: var(--space-4);
+    min-height: 9rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-2);
+    transition: background 0.2s, color 0.2s;
+  }
+  .cp-normal { font-size: var(--text-base); }
+  .cp-large { font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
+  .contrast-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 9rem;
+  }
+  .ct-ratio {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--chai);
+    font-variant-numeric: tabular-nums;
+  }
+  .badges { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; margin-top: var(--space-1); }
+  .wcag-chip {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.04em;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.25em 0.8em;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .wcag-chip.pass {
+    color: var(--cardamom);
+    border-color: color-mix(in srgb, var(--cardamom) 45%, transparent);
+    background: color-mix(in srgb, var(--cardamom) 10%, transparent);
+  }
+  /* fail uses the site's established error red (same as .tool-error) */
+  .wcag-chip.fail {
+    color: #b3261e;
+    border-color: #b3261e33;
+    background: #b3261e14;
+  }
+  html.dark .wcag-chip.fail { color: #ff8a80; }
+</style>

@@ -1,0 +1,297 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Markdown Desk"
+  tagline="Write on the left, watch it typeset on the right."
+>
+  <div class="tool-body">
+    <div class="tool-row">
+      <button class="chip-btn" id="m-sample">Sample</button>
+      <button class="chip-btn" id="m-clear">Clear</button>
+      <span style="flex:1"></span>
+      <button class="chip-btn" id="m-copy-md">Copy Markdown</button>
+      <button class="chip-btn" id="m-copy-html">Copy HTML</button>
+      <button class="chip-btn" id="m-download">Download .md</button>
+    </div>
+
+    <div class="tool-grid cols-2">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Editor</span></div>
+        <div class="md-toolbar" role="toolbar" aria-label="Formatting">
+          <button class="chip-btn" data-fmt="bold" title="Bold"><b>B</b></button>
+          <button class="chip-btn" data-fmt="italic" title="Italic"><i>I</i></button>
+          <button class="chip-btn" data-fmt="h2" title="Heading 2">H2</button>
+          <button class="chip-btn" data-fmt="link" title="Link">Link</button>
+          <button class="chip-btn" data-fmt="code" title="Inline code">`code`</button>
+          <button class="chip-btn" data-fmt="codeblock" title="Code block">``` block</button>
+          <button class="chip-btn" data-fmt="quote" title="Blockquote">&gt; Quote</button>
+          <button class="chip-btn" data-fmt="list" title="Bullet list">• List</button>
+        </div>
+        <textarea
+          id="m-in"
+          class="tool-textarea md-editor"
+          spellcheck="false"
+          aria-label="Markdown source"
+          placeholder="# Start here&#10;&#10;Write some markdown — it typesets on the right as you go."></textarea>
+        <p class="mono-label md-count" id="m-count">0 words · 0 chars</p>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Preview</span></div>
+        <div id="m-out" class="md-preview" role="region" aria-label="Rendered preview">
+          <p class="md-empty">The typeset page appears here as you write.</p>
+        </div>
+      </section>
+    </div>
+
+    <p class="tool-note">Rendered with marked and sanitized with DOMPurify, entirely in your browser. Nothing is uploaded, ever.</p>
+  </div>
+</ToolLayout>
+
+<script>
+  import { marked } from 'marked';
+  import DOMPurify from 'dompurify';
+
+  function initMarkdownDesk() {
+    const ed = document.getElementById('m-in') as HTMLTextAreaElement | null;
+    if (!ed || ed.dataset.wired) return;
+    ed.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const out = $('m-out');
+    const count = $('m-count');
+
+    marked.setOptions({ gfm: true, breaks: false });
+
+    const SAMPLE = `# How to brew masala chai
+
+A field guide from a small kitchen, tested across many rainy mornings between Udupi and San Francisco.
+
+## You will need
+
+- 2 cups water, 1 cup whole milk
+- 2 tsp loose Assam tea
+- Fresh ginger, **crushed**, never sliced
+- 3 cardamom pods, *gently bruised*
+
+## The method
+
+1. Boil the water with the spices until the kitchen smells like a memory.
+2. Add the tea and let it argue with the milk.
+3. Simmer. Do not rush this step: \`patience > heat\`.
+
+> Chai is not a beverage. It is a pause button with steam.
+
+\`\`\`js
+function brew(cups = 2) {
+  return \`\${cups} cups, steeped with patience\`;
+}
+\`\`\`
+
+More small tools live on [the tools page](/tools) — everything brews in your browser.
+
+---
+
+*Strain, pour, sip. Repeat tomorrow.*
+`;
+
+    function render() {
+      const md = ed!.value;
+      const words = md.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu)?.length ?? 0;
+      count.textContent = `${words.toLocaleString()} words · ${md.length.toLocaleString()} chars`;
+
+      if (!md.trim()) {
+        out.innerHTML = '<p class="md-empty">The typeset page appears here as you write.</p>';
+        return;
+      }
+      out.innerHTML = DOMPurify.sanitize(marked.parse(md) as string);
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    ed.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 200); });
+
+    /* ---- toolbar: wrap selection or prefix lines at the cursor ---- */
+    function wrap(before: string, after: string, placeholder: string) {
+      const s = ed!.selectionStart;
+      const e = ed!.selectionEnd;
+      const sel = ed!.value.slice(s, e) || placeholder;
+      ed!.setRangeText(before + sel + after, s, e);
+      ed!.selectionStart = s + before.length;
+      ed!.selectionEnd = s + before.length + sel.length;
+      ed!.focus();
+      render();
+    }
+
+    function prefixLines(prefix: string, placeholder: string) {
+      const v = ed!.value;
+      const s = ed!.selectionStart;
+      const e = ed!.selectionEnd;
+      const ls = v.lastIndexOf('\n', s - 1) + 1;
+      let le = v.indexOf('\n', e);
+      if (le === -1) le = v.length;
+      const block = v.slice(ls, le) || placeholder;
+      const prefixed = block.split('\n').map((l) => prefix + l).join('\n');
+      ed!.setRangeText(prefixed, ls, le);
+      ed!.selectionStart = ls;
+      ed!.selectionEnd = ls + prefixed.length;
+      ed!.focus();
+      render();
+    }
+
+    const ACTIONS: Record<string, () => void> = {
+      bold: () => wrap('**', '**', 'bold'),
+      italic: () => wrap('*', '*', 'italic'),
+      h2: () => prefixLines('## ', 'Heading'),
+      link: () => wrap('[', '](https://)', 'link text'),
+      code: () => wrap('`', '`', 'code'),
+      codeblock: () => wrap('\n```\n', '\n```\n', 'code'),
+      quote: () => prefixLines('> ', 'A thought worth indenting.'),
+      list: () => prefixLines('- ', 'first item'),
+    };
+
+    document.querySelectorAll<HTMLButtonElement>('[data-fmt]').forEach((btn) =>
+      btn.addEventListener('click', () => ACTIONS[btn.dataset.fmt!]()));
+
+    /* ---- buttons ---- */
+    $('m-sample').addEventListener('click', () => { ed!.value = SAMPLE; render(); });
+    $('m-clear').addEventListener('click', () => { ed!.value = ''; render(); ed!.focus(); });
+    $('m-copy-md').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(ed!.value);
+      (window as any).toast?.('Markdown copied. 📋');
+    });
+    $('m-copy-html').addEventListener('click', async () => {
+      const html = ed!.value.trim() ? DOMPurify.sanitize(marked.parse(ed!.value) as string) : '';
+      await navigator.clipboard.writeText(html);
+      (window as any).toast?.('Sanitized HTML copied. ✨');
+    });
+    $('m-download').addEventListener('click', () => {
+      const blob = new Blob([ed!.value], { type: 'text/markdown' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'draft.md';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      (window as any).toast?.('Saved as draft.md');
+    });
+
+    render();
+  }
+  document.addEventListener('astro:page-load', initMarkdownDesk);
+  initMarkdownDesk();
+</script>
+
+<style>
+  .md-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-2);
+  }
+  .md-editor { min-height: 24rem; }
+  .md-count { margin-top: var(--space-2); }
+
+  /* ---- editorial preview typography ---- */
+  .md-preview {
+    min-height: 24rem;
+    max-height: 38rem;
+    overflow: auto;
+    padding: var(--space-2) var(--space-2) var(--space-3);
+    font-size: var(--text-base);
+    line-height: var(--leading-body);
+    color: var(--ink);
+  }
+  .md-preview :global(.md-empty) {
+    color: var(--ink-faint);
+    font-style: italic;
+    font-size: var(--text-sm);
+  }
+  .md-preview :global(h1),
+  .md-preview :global(h2),
+  .md-preview :global(h3),
+  .md-preview :global(h4) {
+    font-family: var(--font-display);
+    font-weight: 560;
+    line-height: var(--leading-tight);
+    letter-spacing: -0.015em;
+    margin-block: 1.4em 0.5em;
+  }
+  .md-preview :global(h1) { font-size: var(--text-lg); margin-top: 0.4em; }
+  .md-preview :global(h2) { font-size: var(--text-md); }
+  .md-preview :global(h3) { font-size: var(--text-base); }
+  .md-preview :global(h2::after) {
+    content: '';
+    display: block;
+    width: 2.4em;
+    height: 1px;
+    margin-top: 0.35em;
+    background: color-mix(in srgb, var(--chai) 50%, transparent);
+  }
+  .md-preview :global(p) { margin-block: 0.75em; }
+  .md-preview :global(ul),
+  .md-preview :global(ol) { margin-block: 0.75em; padding-left: 1.4em; }
+  .md-preview :global(li) { margin-block: 0.25em; }
+  .md-preview :global(li::marker) { color: var(--chai); }
+  .md-preview :global(a) { color: var(--chai); }
+  .md-preview :global(blockquote) {
+    margin: 1em 0;
+    padding: 0.35em 0 0.35em 1em;
+    border-left: 3px solid var(--chai);
+    background: var(--chai-wash);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .md-preview :global(blockquote p) { margin-block: 0.25em; }
+  .md-preview :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--paper-deep);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    padding: 0.1em 0.4em;
+  }
+  .md-preview :global(pre) {
+    background: var(--paper-deep);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+    overflow-x: auto;
+    margin-block: 1em;
+  }
+  .md-preview :global(pre code) {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.85em;
+    line-height: 1.6;
+  }
+  .md-preview :global(hr) {
+    border: none;
+    border-top: 2px dotted color-mix(in srgb, var(--ink-faint) 60%, transparent);
+    width: 38%;
+    margin: 2rem auto;
+  }
+  .md-preview :global(table) {
+    border-collapse: collapse;
+    margin-block: 1em;
+    font-size: var(--text-sm);
+  }
+  .md-preview :global(th),
+  .md-preview :global(td) {
+    border: 1px solid var(--line-soft);
+    padding: 0.4em 0.8em;
+    text-align: left;
+  }
+  .md-preview :global(th) {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: var(--paper-deep);
+  }
+  .md-preview :global(img) { border-radius: var(--radius); }
+</style>

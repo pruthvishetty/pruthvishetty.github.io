@@ -1,0 +1,433 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Hash &amp; UUID Mint"
+  tagline="Digests for text and files, fresh UUIDs on tap — minted locally."
+>
+  <div class="tool-body" id="h-root">
+    <section class="tool-panel hash-section">
+      <div class="panel-label">
+        <label for="h-in">Hash text</label>
+        <span id="h-live"></span>
+      </div>
+      <textarea
+        id="h-in"
+        class="tool-textarea hash-input"
+        spellcheck="false"
+        placeholder="Type or paste — digests brew below as you go. Try “one masala chai, well hashed”."></textarea>
+
+      <div class="tool-row stat-strip">
+        <div class="stat-box"><b id="h-bytes">0</b><span>bytes</span></div>
+        <div class="stat-box"><b id="h-chars">0</b><span>characters</span></div>
+      </div>
+
+      <div class="digest-rows">
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-1</span>
+          <code class="digest" id="ht-sha-1">—</code>
+          <button class="chip-btn" data-copy="ht-sha-1">Copy</button>
+        </div>
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-256</span>
+          <code class="digest" id="ht-sha-256">—</code>
+          <button class="chip-btn" data-copy="ht-sha-256">Copy</button>
+        </div>
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-384</span>
+          <code class="digest" id="ht-sha-384">—</code>
+          <button class="chip-btn" data-copy="ht-sha-384">Copy</button>
+        </div>
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-512</span>
+          <code class="digest" id="ht-sha-512">—</code>
+          <button class="chip-btn" data-copy="ht-sha-512">Copy</button>
+        </div>
+      </div>
+      <p class="tool-note">MD5 is deliberately absent — broken since 2004. Let it rest.</p>
+    </section>
+
+    <section class="tool-panel hash-section">
+      <div class="panel-label">
+        <span>Hash a file</span>
+        <span id="h-file-meta"></span>
+      </div>
+      <div class="drop-zone" id="h-drop" tabindex="0" role="button" aria-label="Choose or drop a file to hash">
+        <p>Drop a file here, or <span class="file-pick">browse</span> for one.</p>
+        <p class="drop-sub mono-label">photos, tarballs, chai recipes — anything</p>
+      </div>
+      <input type="file" id="h-file" class="visually-hidden" aria-label="File to hash" />
+
+      <div class="digest-rows">
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-1</span>
+          <code class="digest" id="hf-sha-1">—</code>
+          <button class="chip-btn" data-copy="hf-sha-1">Copy</button>
+        </div>
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-256</span>
+          <code class="digest" id="hf-sha-256">—</code>
+          <button class="chip-btn" data-copy="hf-sha-256">Copy</button>
+        </div>
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-384</span>
+          <code class="digest" id="hf-sha-384">—</code>
+          <button class="chip-btn" data-copy="hf-sha-384">Copy</button>
+        </div>
+        <div class="digest-row">
+          <span class="mono-label algo">SHA-512</span>
+          <code class="digest" id="hf-sha-512">—</code>
+          <button class="chip-btn" data-copy="hf-sha-512">Copy</button>
+        </div>
+      </div>
+      <p class="tool-note">
+        The file is read in-memory by your browser only — nothing is uploaded, nothing leaves
+        this page.
+      </p>
+    </section>
+
+    <section class="tool-panel hash-section">
+      <div class="panel-label"><span>UUID mint</span></div>
+      <div class="tool-row">
+        <label class="mono-label" for="u-count">Count</label>
+        <select id="u-count" class="tool-select u-count">
+          <option>1</option>
+          <option selected>5</option>
+          <option>10</option>
+          <option>25</option>
+          <option>50</option>
+          <option>100</option>
+        </select>
+        <button class="chip-btn" id="u-gen">Generate</button>
+        <span style="flex:1"></span>
+        <button class="chip-btn" id="u-copy-all" hidden>Copy all</button>
+      </div>
+      <div class="uuid-list" id="u-list"></div>
+
+      <div class="tool-row rand-row">
+        <label class="mono-label" for="r-len">Random bytes</label>
+        <input id="r-len" class="tool-input r-len" type="number" min="1" max="65536" value="32" />
+        <button class="chip-btn" id="r-hex">Hex</button>
+        <button class="chip-btn" id="r-b64">Base64</button>
+      </div>
+      <div class="digest-row" id="r-row" hidden>
+        <span class="mono-label algo" id="r-label">bytes</span>
+        <code class="digest" id="r-out"></code>
+        <button class="chip-btn" data-copy="r-out">Copy</button>
+      </div>
+    </section>
+  </div>
+</ToolLayout>
+
+<script>
+  function initHashMint() {
+    const root = document.getElementById('h-root');
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const input = $('h-in') as HTMLTextAreaElement;
+    const live = $('h-live');
+    const fileMeta = $('h-file-meta');
+    const drop = $('h-drop');
+    const fileInput = $('h-file') as HTMLInputElement;
+    const uuidList = $('u-list');
+    const copyAllBtn = $('u-copy-all');
+    const lenInput = $('r-len') as HTMLInputElement;
+    const randRow = $('r-row');
+    const randLabel = $('r-label');
+    const randOut = $('r-out');
+
+    const ALGOS = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as const;
+
+    const toHex = (buf: ArrayBuffer) =>
+      Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+
+    function toB64(bytes: Uint8Array): string {
+      let bin = '';
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+      }
+      return btoa(bin);
+    }
+
+    const setRows = (prefix: 'ht' | 'hf', text: string) => {
+      for (const a of ALGOS) $(`${prefix}-${a.toLowerCase()}`).textContent = text;
+    };
+
+    /* ---- section 1 · hash text (request counter beats stale async) ---- */
+    let textSeq = 0;
+    async function hashText() {
+      const my = ++textSeq;
+      const raw = input.value;
+      const data = new TextEncoder().encode(raw);
+      $('h-bytes').textContent = data.length.toLocaleString();
+      $('h-chars').textContent = [...raw].length.toLocaleString();
+      if (!raw) {
+        setRows('ht', '—');
+        live.textContent = '';
+        return;
+      }
+      live.textContent = 'hashing…';
+      const digests = await Promise.all(ALGOS.map((a) => crypto.subtle.digest(a, data)));
+      if (my !== textSeq) return; // a newer keystroke won the race
+      digests.forEach((d, i) => {
+        $(`ht-${ALGOS[i].toLowerCase()}`).textContent = toHex(d);
+      });
+      live.textContent = '';
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    input.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(hashText, 250);
+    });
+
+    /* ---- section 2 · hash a file ---- */
+    const fmtSize = (n: number) => {
+      if (n < 1024) return `${n} B`;
+      if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;
+      if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+      return `${(n / 1024 ** 3).toFixed(2)} GB`;
+    };
+
+    let fileSeq = 0;
+    async function hashFile(f: File) {
+      const my = ++fileSeq;
+      fileMeta.textContent = `${f.name} · ${fmtSize(f.size)}`;
+      setRows('hf', 'hashing…');
+      try {
+        const buf = await f.arrayBuffer();
+        if (my !== fileSeq) return;
+        const digests = await Promise.all(ALGOS.map((a) => crypto.subtle.digest(a, buf)));
+        if (my !== fileSeq) return;
+        digests.forEach((d, i) => {
+          $(`hf-${ALGOS[i].toLowerCase()}`).textContent = toHex(d);
+        });
+        (window as any).toast?.('File hashed — locally, of course.');
+      } catch {
+        if (my !== fileSeq) return;
+        setRows('hf', '—');
+        (window as any).toast?.('Could not read that file.');
+      }
+    }
+
+    drop.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files?.[0];
+      if (f) hashFile(f);
+    });
+    drop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      drop.classList.add('drag');
+    });
+    drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('drag');
+      const f = e.dataTransfer?.files?.[0];
+      if (f) hashFile(f);
+    });
+
+    /* ---- section 3 · UUID mint ---- */
+    let uuids: string[] = [];
+    $('u-gen').addEventListener('click', () => {
+      const n = parseInt(($('u-count') as HTMLSelectElement).value, 10);
+      uuids = Array.from({ length: n }, () => crypto.randomUUID());
+      uuidList.textContent = '';
+      for (const u of uuids) {
+        const row = document.createElement('div');
+        row.className = 'uuid-row';
+        const code = document.createElement('code');
+        code.className = 'digest';
+        code.textContent = u;
+        const btn = document.createElement('button');
+        btn.className = 'chip-btn';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', async () => {
+          await navigator.clipboard.writeText(u);
+          (window as any).toast?.('UUID copied. 📋');
+        });
+        row.append(code, btn);
+        uuidList.appendChild(row);
+      }
+      copyAllBtn.hidden = false;
+      (window as any).toast?.(`Minted ${n} UUID${n === 1 ? '' : 's'}.`);
+    });
+
+    copyAllBtn.addEventListener('click', async () => {
+      if (!uuids.length) return;
+      await navigator.clipboard.writeText(uuids.join('\n'));
+      (window as any).toast?.(`All ${uuids.length} UUIDs copied. 📋`);
+    });
+
+    /* ---- random bytes ---- */
+    function mintBytes(asHex: boolean) {
+      let len = parseInt(lenInput.value, 10);
+      if (!Number.isFinite(len)) len = 32;
+      len = Math.min(65536, Math.max(1, len));
+      lenInput.value = String(len);
+      const bytes = new Uint8Array(len);
+      crypto.getRandomValues(bytes);
+      randOut.textContent = asHex ? toHex(bytes.buffer) : toB64(bytes);
+      randLabel.textContent = `${asHex ? 'hex' : 'base64'} · ${len} B`;
+      randRow.hidden = false;
+    }
+    $('r-hex').addEventListener('click', () => mintBytes(true));
+    $('r-b64').addEventListener('click', () => mintBytes(false));
+
+    /* ---- shared copy buttons (data-copy="<id>") ---- */
+    root.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-copy]');
+      if (!btn) return;
+      const text = $(btn.dataset.copy!).textContent ?? '';
+      if (!text || text === '—' || text === 'hashing…') {
+        (window as any).toast?.('Nothing to copy yet.');
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      (window as any).toast?.('Copied. 📋');
+    });
+  }
+  document.addEventListener('astro:page-load', initHashMint);
+  initHashMint();
+</script>
+
+<style>
+  .hash-section + .hash-section {
+    margin-top: var(--space-3);
+  }
+  .hash-input {
+    min-height: 9rem;
+  }
+  .digest-rows {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+  /* hidden must win over our display:flex (used by the random-bytes row) */
+  .digest-row[hidden] {
+    display: none;
+  }
+  .digest-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: var(--space-2) var(--space-3);
+  }
+  .digest-row .algo {
+    flex: 0 0 5.2rem;
+    letter-spacing: 0.1em;
+  }
+  .digest {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    word-break: break-all;
+  }
+  .digest-row .chip-btn {
+    flex: 0 0 auto;
+  }
+  @media (max-width: 600px) {
+    .digest-row {
+      flex-wrap: wrap;
+    }
+    .digest {
+      flex-basis: 100%;
+      order: 3;
+    }
+  }
+
+  .drop-zone {
+    border: 1.5px dashed var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+    padding: var(--space-4) var(--space-3);
+    text-align: center;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: border-color 0.2s var(--ease-smooth), background 0.2s var(--ease-smooth);
+  }
+  .drop-zone:hover,
+  .drop-zone:focus-visible,
+  .drop-zone.drag {
+    border-color: var(--chai);
+    background: var(--chai-wash);
+  }
+  .drop-zone p {
+    margin: 0;
+  }
+  .drop-zone .file-pick {
+    color: var(--chai);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .drop-zone .drop-sub {
+    margin-top: var(--space-1);
+    letter-spacing: 0.06em;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .u-count {
+    width: auto;
+    min-width: 5.5rem;
+    resize: none;
+    padding-block: 0.4em;
+  }
+  .uuid-list {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .uuid-list :global(.uuid-row) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: var(--space-2) var(--space-3);
+  }
+  .uuid-list :global(.digest) {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    word-break: break-all;
+  }
+  .rand-row {
+    margin-top: var(--space-4);
+    margin-bottom: var(--space-2);
+  }
+  .r-len {
+    width: 6.5rem;
+    resize: none;
+    padding-block: 0.4em;
+  }
+</style>

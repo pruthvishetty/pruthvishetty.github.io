@@ -1,0 +1,142 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const tools = [
+  { href: '/tools/json/', name: 'JSON Studio', blurb: 'Format, validate, and walk JSON as a living tree.', glyph: '{}' },
+  { href: '/tools/diff/', name: 'Diff Desk', blurb: 'Compare two texts, see every change side by side.', glyph: '±' },
+  { href: '/tools/regex/', name: 'Regex Playground', blurb: 'Write patterns, watch matches light up live.', glyph: '.*' },
+  { href: '/tools/text/', name: 'Text Lab', blurb: 'Counts, reading time, case tools, and clean-ups.', glyph: 'Aa' },
+  { href: '/tools/markdown/', name: 'Markdown Desk', blurb: 'Write markdown, preview beautifully, copy HTML.', glyph: 'M↓' },
+  { href: '/tools/qr/', name: 'QR Studio', blurb: 'QR codes for links, WiFi, and more — yours to style.', glyph: '▦' },
+  { href: '/tools/color/', name: 'Color Studio', blurb: 'Convert, harmonize, and contrast-check colors.', glyph: '◐' },
+  { href: '/tools/encode/', name: 'Encoder Ring', blurb: 'Base64, URL, JWT, and entities — both directions.', glyph: '⇄' },
+  { href: '/tools/hash/', name: 'Hash & UUID Mint', blurb: 'SHA digests for text & files, fresh UUIDs on tap.', glyph: '#' },
+  { href: '/tools/time/', name: 'Time Traveler', blurb: 'Epoch ↔ human time, across the world’s clocks.', glyph: '◷' },
+  { href: '/tools/cron/', name: 'Cron Translator', blurb: 'Turn cron arcana into plain English schedules.', glyph: '✱' },
+];
+---
+
+<BaseLayout
+  title="Tools — free, private, in-browser utilities by Pruthvi Shetty"
+  description="Eleven hand-built developer tools that run 100% in your browser. No servers, no tracking, no data leaves your device. Free forever."
+>
+  <section class="wrap tools-hero">
+    <p class="eyebrow reveal">The workshop</p>
+    <h1 class="reveal" style="--reveal-delay:.08s">Tools that <em>never phone home.</em></h1>
+    <p class="lede reveal" style="--reveal-delay:.16s">
+      Eleven small, sharp utilities I built because I needed them. Everything runs in
+      <strong>your</strong> browser — no servers, no accounts, no analytics on your data.
+      Open the Network tab; I’ll wait. ☕
+    </p>
+  </section>
+
+  <section class="wrap">
+    <div class="tools-grid">
+      {tools.map((t, i) => (
+        <a href={t.href} class="tool-card reveal" style={`--reveal-delay:${(i % 3) * 0.06}s`}>
+          <span class="glyph" aria-hidden="true">{t.glyph}</span>
+          <h2>{t.name}</h2>
+          <p>{t.blurb}</p>
+          <span class="open mono-label">open →</span>
+        </a>
+      ))}
+    </div>
+
+    <div class="pledge reveal">
+      <h2>The privacy pledge</h2>
+      <div class="pledge-grid">
+        <p><strong>Client-side only.</strong> Every computation happens in this tab, in your browser, on your machine.</p>
+        <p><strong>Nothing stored.</strong> No databases, no uploads, no cookies tracking what you paste.</p>
+        <p><strong>Source in the open.</strong> The whole site lives on <a href="https://github.com/pruthvishetty/pruthvishetty.github.io" target="_blank" rel="noopener">GitHub</a> — inspect every line.</p>
+        <p><strong>Offline friendly.</strong> Once a tool loads, it keeps working with the WiFi off.</p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .tools-hero { padding-block: clamp(3rem, 8vh, 5.5rem) var(--space-6); }
+  .tools-hero h1 { font-size: var(--text-hero); margin-top: var(--space-3); }
+  .tools-hero h1 em {
+    font-style: italic;
+    font-variation-settings: 'SOFT' 70, 'WONK' 1;
+    color: var(--chai);
+  }
+  .lede {
+    margin-top: var(--space-3);
+    color: var(--ink-soft);
+    font-size: var(--text-md);
+    max-width: 52ch;
+  }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--space-3);
+  }
+  .tool-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    background: var(--paper-raise);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-spring), border-color 0.3s;
+  }
+  .tool-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--line);
+    box-shadow: 0 16px 34px -18px rgb(var(--shadow) / 0.35);
+  }
+  .glyph {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    color: var(--chai);
+    background: var(--chai-wash);
+    width: 2.6rem;
+    height: 2.6rem;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-2);
+    transition: transform 0.3s var(--ease-spring);
+  }
+  .tool-card:hover .glyph { transform: rotate(-6deg) scale(1.08); }
+  .tool-card h2 { font-size: var(--text-md); }
+  .tool-card p { color: var(--ink-soft); font-size: var(--text-sm); }
+  .open {
+    margin-top: auto;
+    padding-top: var(--space-2);
+    color: var(--chai);
+    letter-spacing: 0.12em;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.25s, transform 0.25s var(--ease-spring);
+  }
+  .tool-card:hover .open { opacity: 1; transform: none; }
+
+  .pledge {
+    margin-top: var(--space-7);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    background: var(--paper-deep);
+  }
+  .pledge h2 {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-3);
+    font-style: italic;
+    font-variation-settings: 'SOFT' 60, 'WONK' 1;
+  }
+  .pledge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-3) var(--space-4);
+  }
+  .pledge-grid p { color: var(--ink-soft); font-size: var(--text-sm); }
+</style>

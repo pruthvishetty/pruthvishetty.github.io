@@ -1,0 +1,386 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="QR Studio"
+  tagline="Codes for links, WiFi, and whatever else — styled your way, made on your machine."
+>
+  <div class="tool-body" id="qr-root">
+    <div class="tool-row" role="group" aria-label="QR code type">
+      <button class="chip-btn active" data-type="text" aria-pressed="true">Text / URL</button>
+      <button class="chip-btn" data-type="wifi" aria-pressed="false">WiFi</button>
+      <button class="chip-btn" data-type="email" aria-pressed="false">Email</button>
+      <button class="chip-btn" data-type="phone" aria-pressed="false">Phone</button>
+      <button class="chip-btn" data-type="sms" aria-pressed="false">SMS</button>
+    </div>
+
+    <div class="tool-grid cols-2">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Compose</span></div>
+
+        <div class="field-group" id="qf-text">
+          <label class="q-label" for="q-text">Text or URL</label>
+          <input
+            id="q-text"
+            class="tool-input"
+            type="text"
+            placeholder="https://pruthvishetty.com — or a chai recipe, your call"
+          />
+        </div>
+
+        <div class="field-group" id="qf-wifi" hidden>
+          <label class="q-label" for="q-ssid">Network name (SSID)</label>
+          <input id="q-ssid" class="tool-input" type="text" placeholder="ChaiHouse_5G" />
+          <label class="q-label" for="q-pass">Password</label>
+          <input
+            id="q-pass"
+            class="tool-input"
+            type="text"
+            placeholder="extra-cardamom"
+            autocomplete="off"
+          />
+          <label class="q-label" for="q-enc">Encryption</label>
+          <select id="q-enc" class="tool-select">
+            <option value="WPA" selected>WPA / WPA2</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">None (open network)</option>
+          </select>
+          <label class="q-check">
+            <input id="q-hidden" type="checkbox" />
+            <span>Hidden network</span>
+          </label>
+        </div>
+
+        <div class="field-group" id="qf-email" hidden>
+          <label class="q-label" for="q-to">To</label>
+          <input id="q-to" class="tool-input" type="email" placeholder="hello@example.com" />
+          <label class="q-label" for="q-subject">Subject</label>
+          <input id="q-subject" class="tool-input" type="text" placeholder="Chai on Saturday?" />
+          <label class="q-label" for="q-body">Body</label>
+          <textarea
+            id="q-body"
+            class="tool-textarea q-body"
+            placeholder="There's a place in the Mission with proper ginger chai…"></textarea>
+        </div>
+
+        <div class="field-group" id="qf-phone" hidden>
+          <label class="q-label" for="q-tel">Phone number</label>
+          <input id="q-tel" class="tool-input" type="tel" placeholder="+1 415 555 0134" />
+        </div>
+
+        <div class="field-group" id="qf-sms" hidden>
+          <label class="q-label" for="q-sms-num">Phone number</label>
+          <input id="q-sms-num" class="tool-input" type="tel" placeholder="+1 415 555 0134" />
+          <label class="q-label" for="q-sms-msg">Message</label>
+          <textarea
+            id="q-sms-msg"
+            class="tool-textarea q-body"
+            placeholder="Landed in Bengaluru. Chai first, then everything else."></textarea>
+        </div>
+
+        <div class="opts">
+          <div class="opt">
+            <label class="q-label" for="q-size">Size</label>
+            <select id="q-size" class="tool-select">
+              <option value="256">256 px</option>
+              <option value="384" selected>384 px</option>
+              <option value="512">512 px</option>
+              <option value="768">768 px</option>
+            </select>
+          </div>
+          <div class="opt">
+            <label class="q-label" for="q-ec">Error correction</label>
+            <select id="q-ec" class="tool-select">
+              <option value="L">L · 7%</option>
+              <option value="M" selected>M · 15%</option>
+              <option value="Q">Q · 25%</option>
+              <option value="H">H · 30%</option>
+            </select>
+          </div>
+          <div class="opt">
+            <label class="q-label" for="q-fg">Ink</label>
+            <input id="q-fg" class="q-color" type="color" value="#221d18" />
+          </div>
+          <div class="opt">
+            <label class="q-label" for="q-bg">Paper</label>
+            <input id="q-bg" class="q-color" type="color" value="#faf6ee" />
+          </div>
+        </div>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Preview</span><span id="q-dims"></span></div>
+        <div class="qr-frame">
+          <canvas id="q-canvas" hidden></canvas>
+          <p class="qr-empty" id="q-empty">Type something on the left — your code brews here.</p>
+        </div>
+        <div class="tool-row">
+          <button class="chip-btn" id="q-png" disabled>Download PNG</button>
+          <button class="chip-btn" id="q-svg" disabled>Download SVG</button>
+          <button class="chip-btn" id="q-copy" disabled hidden>Copy image</button>
+        </div>
+        <p class="tool-note">
+          Everything is generated right here in your browser — WiFi passwords (and everything
+          else) never leave this page.
+        </p>
+      </section>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  import QRCode from 'qrcode';
+
+  function initQrStudio() {
+    const root = document.getElementById('qr-root');
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const canvas = $('q-canvas') as HTMLCanvasElement;
+    const empty = $('q-empty');
+    const dims = $('q-dims');
+    const pngBtn = $('q-png') as HTMLButtonElement;
+    const svgBtn = $('q-svg') as HTMLButtonElement;
+    const copyBtn = $('q-copy') as HTMLButtonElement;
+    const val = (id: string) => ($(id) as HTMLInputElement).value;
+
+    const EMPTY_MSG = 'Type something on the left — your code brews here.';
+    let activeType = 'text';
+
+    const canCopy =
+      typeof navigator !== 'undefined' &&
+      !!navigator.clipboard &&
+      'write' in navigator.clipboard &&
+      typeof ClipboardItem !== 'undefined';
+    if (canCopy) copyBtn.hidden = false;
+
+    // type switching
+    const chips = root.querySelectorAll<HTMLButtonElement>('.tool-row [data-type]');
+    chips.forEach((chip) =>
+      chip.addEventListener('click', () => {
+        activeType = chip.dataset.type!;
+        chips.forEach((c) => {
+          const on = c === chip;
+          c.classList.toggle('active', on);
+          c.setAttribute('aria-pressed', String(on));
+        });
+        for (const g of root.querySelectorAll<HTMLElement>('.field-group'))
+          g.hidden = g.id !== `qf-${activeType}`;
+        render();
+      })
+    );
+
+    // WIFI: special chars \ ; , " : must be backslash-escaped
+    const esc = (s: string) => s.replace(/([\\;,":])/g, '\\$1');
+
+    function buildPayload(): string {
+      switch (activeType) {
+        case 'text':
+          return val('q-text').trim();
+        case 'wifi': {
+          const ssid = val('q-ssid').trim();
+          if (!ssid) return '';
+          const enc = val('q-enc');
+          const pass = val('q-pass');
+          let s = `WIFI:T:${enc};S:${esc(ssid)};`;
+          if (enc !== 'nopass' && pass) s += `P:${esc(pass)};`;
+          if (($('q-hidden') as HTMLInputElement).checked) s += 'H:true;';
+          return s + ';';
+        }
+        case 'email': {
+          const to = val('q-to').trim();
+          if (!to) return '';
+          const parts: string[] = [];
+          const subject = val('q-subject').trim();
+          const body = val('q-body').trim();
+          if (subject) parts.push(`subject=${encodeURIComponent(subject)}`);
+          if (body) parts.push(`body=${encodeURIComponent(body)}`);
+          return `mailto:${to}${parts.length ? '?' + parts.join('&') : ''}`;
+        }
+        case 'phone': {
+          const num = val('q-tel').replace(/\s+/g, '');
+          return num ? `tel:${num}` : '';
+        }
+        case 'sms': {
+          const num = val('q-sms-num').replace(/\s+/g, '');
+          if (!num) return '';
+          const msg = val('q-sms-msg').trim();
+          return msg ? `smsto:${num}:${msg}` : `smsto:${num}`;
+        }
+      }
+      return '';
+    }
+
+    function options() {
+      return {
+        width: +val('q-size'),
+        margin: 2,
+        errorCorrectionLevel: val('q-ec') as 'L' | 'M' | 'Q' | 'H',
+        color: { dark: val('q-fg'), light: val('q-bg') },
+      };
+    }
+
+    async function render() {
+      const payload = buildPayload();
+      if (!payload) {
+        canvas.hidden = true;
+        empty.hidden = false;
+        empty.textContent = EMPTY_MSG;
+        dims.textContent = '';
+        pngBtn.disabled = svgBtn.disabled = copyBtn.disabled = true;
+        return;
+      }
+      try {
+        const opts = options();
+        await QRCode.toCanvas(canvas, payload, opts);
+        canvas.hidden = false;
+        empty.hidden = true;
+        dims.textContent = `${opts.width}×${opts.width}px`;
+        pngBtn.disabled = svgBtn.disabled = copyBtn.disabled = false;
+      } catch {
+        canvas.hidden = true;
+        empty.hidden = false;
+        empty.textContent = "That's a bit much for one code — trim it down a little.";
+        dims.textContent = '';
+        pngBtn.disabled = svgBtn.disabled = copyBtn.disabled = true;
+      }
+    }
+
+    // debounced re-render on any field change
+    let t: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      clearTimeout(t);
+      t = setTimeout(render, 250);
+    };
+    root.addEventListener('input', schedule);
+    root.addEventListener('change', schedule);
+
+    const download = (href: string, name: string) => {
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = name;
+      a.click();
+    };
+
+    pngBtn.addEventListener('click', () => {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        download(url, 'qr-code.png');
+        URL.revokeObjectURL(url);
+        (window as any).toast?.('PNG saved. 🖼️');
+      });
+    });
+
+    svgBtn.addEventListener('click', async () => {
+      const payload = buildPayload();
+      if (!payload) return;
+      const svg = await QRCode.toString(payload, { ...options(), type: 'svg' });
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      download(url, 'qr-code.svg');
+      URL.revokeObjectURL(url);
+      (window as any).toast?.('SVG saved. ✒️');
+    });
+
+    copyBtn.addEventListener('click', () => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          (window as any).toast?.('QR code copied to clipboard. 📋');
+        } catch {
+          (window as any).toast?.("Couldn't copy — try the PNG download instead.");
+        }
+      });
+    });
+
+    render();
+  }
+  document.addEventListener('astro:page-load', initQrStudio);
+  initQrStudio();
+</script>
+
+<style>
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-bottom: var(--space-3);
+  }
+  .q-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: var(--space-2);
+  }
+  .field-group .q-label:first-child { margin-top: 0; }
+  .q-body { min-height: 6rem; }
+  .q-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .q-check input { width: 1rem; height: 1rem; cursor: pointer; }
+
+  .opts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-2) var(--space-3);
+    border-top: 1px solid var(--line-soft);
+    padding-top: var(--space-3);
+    margin-top: var(--space-3);
+  }
+  .opt { display: flex; flex-direction: column; gap: var(--space-1); }
+  .opt .q-label { margin-top: 0; }
+  .q-color {
+    width: 100%;
+    height: 2.6rem;
+    padding: 0.25rem;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    background: var(--paper);
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .q-color:hover, .q-color:focus { border-color: var(--chai); }
+
+  .qr-frame {
+    display: grid;
+    place-items: center;
+    min-height: 18rem;
+    padding: var(--space-3);
+    background: var(--paper-deep);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+  }
+  .qr-frame canvas {
+    max-width: min(100%, 20rem);
+    height: auto;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px -12px rgb(var(--shadow) / 0.35);
+  }
+  .qr-empty {
+    color: var(--ink-faint);
+    font-style: italic;
+    text-align: center;
+    max-width: 26ch;
+  }
+
+  .tool-row .chip-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .tool-row .chip-btn:disabled:hover {
+    border-color: var(--line);
+    color: var(--ink-soft);
+  }
+</style>

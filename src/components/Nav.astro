@@ -1,0 +1,149 @@
+---
+const path = Astro.url.pathname;
+const links = [
+  { href: '/#work', label: 'Work' },
+  { href: '/writing/', label: 'Writing' },
+  { href: '/tools/', label: 'Tools' },
+];
+const isActive = (href: string) =>
+  href !== '/#work' && path.startsWith(href.replace(/#.*$/, ''));
+---
+
+<header class="nav-bar">
+  <div class="wrap nav-inner">
+    <a href="/" class="wordmark">Pruthvi <em>Shetty</em></a>
+
+    <nav aria-label="Primary">
+      {links.map((l) => (
+        <a href={l.href} class:list={['nav-link', { active: isActive(l.href) }]}>{l.label}</a>
+      ))}
+    </nav>
+
+    <div class="nav-actions">
+      <button id="chai-cup" class="icon-btn chai" title="Chai break" aria-label="Take a chai break">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <g class="steam">
+            <path d="M9 5c0-1 .8-1.4.8-2.4" />
+            <path d="M12.5 5c0-1 .8-1.4.8-2.4" />
+          </g>
+          <path d="M5 9h12v4.5a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V9Z" />
+          <path d="M17 10.5h1.4a2.3 2.3 0 0 1 0 4.6H16.6" />
+          <path d="M6.5 21.5h11" />
+        </svg>
+      </button>
+
+      <button id="theme-toggle" class="icon-btn" title="Toggle theme" aria-label="Toggle light and dark theme">
+        <svg class="i-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6 19 19M5 19l1.4-1.4M17.6 6.4 19 5" />
+        </svg>
+        <svg class="i-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M20.5 14A8.5 8.5 0 1 1 10 3.5 7 7 0 0 0 20.5 14Z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<style>
+  .nav-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: color-mix(in srgb, var(--paper) 82%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    height: 3.75rem;
+  }
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 1.18rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-decoration: none;
+    margin-right: auto;
+    white-space: nowrap;
+  }
+  .wordmark em {
+    font-style: italic;
+    font-variation-settings: 'SOFT' 60, 'WONK' 1;
+    color: var(--chai);
+  }
+  nav {
+    display: flex;
+    gap: clamp(0.75rem, 2.5vw, 1.75rem);
+  }
+  .nav-link {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 0.3em 0;
+    border-bottom: 1.5px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .nav-link:hover { color: var(--ink); }
+  .nav-link.active {
+    color: var(--chai);
+    border-bottom-color: var(--chai);
+  }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .icon-btn {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s, transform 0.25s var(--ease-spring);
+  }
+  .icon-btn:hover {
+    color: var(--chai);
+    background: var(--chai-wash);
+    transform: translateY(-1px);
+  }
+
+  /* sun/moon swap */
+  .i-moon { display: none; }
+  :global(html.dark) .i-sun { display: none; }
+  :global(html.dark) .i-moon { display: block; }
+
+  /* the cup always steams, gently */
+  .steam path {
+    opacity: 0;
+    animation: steam-rise 3.2s ease-in-out infinite;
+  }
+  .steam path:nth-child(2) { animation-delay: 1.6s; }
+  @keyframes steam-rise {
+    0% { opacity: 0; transform: translateY(2px); }
+    35% { opacity: 0.9; }
+    100% { opacity: 0; transform: translateY(-3px); }
+  }
+  .chai.brewing svg { animation: cup-jiggle 0.55s var(--ease-spring); }
+  @keyframes cup-jiggle {
+    0% { transform: rotate(0); }
+    30% { transform: rotate(-8deg); }
+    60% { transform: rotate(6deg); }
+    100% { transform: rotate(0); }
+  }
+
+  @media (max-width: 480px) {
+    .wordmark em { display: none; }
+    .nav-inner { gap: var(--space-3); }
+  }
+</style>

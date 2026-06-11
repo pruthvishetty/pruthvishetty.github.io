@@ -1,0 +1,249 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="JSON Studio"
+  tagline="Format, validate, and explore JSON as a collapsible tree — without it ever leaving your machine."
+>
+  <div class="tool-body">
+    <div class="tool-row">
+      <button class="chip-btn" id="j-format">Format · 2sp</button>
+      <button class="chip-btn" id="j-format4">Format · 4sp</button>
+      <button class="chip-btn" id="j-minify">Minify</button>
+      <button class="chip-btn" id="j-sample">Sample</button>
+      <button class="chip-btn" id="j-clear">Clear</button>
+      <span style="flex:1"></span>
+      <button class="chip-btn" id="j-copy">Copy</button>
+      <button class="chip-btn" id="j-download">Download .json</button>
+    </div>
+
+    <div class="tool-grid cols-2">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Input</span><span id="j-size"></span></div>
+        <textarea
+          id="j-in"
+          class="tool-textarea"
+          spellcheck="false"
+          placeholder='Paste JSON here… try {"chai": true}'></textarea>
+        <p class="tool-error" id="j-err" hidden></p>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label">
+          <span>Tree</span>
+          <span>
+            <button class="chip-btn" id="j-expand">Expand all</button>
+            <button class="chip-btn" id="j-collapse">Collapse all</button>
+          </span>
+        </div>
+        <div id="j-tree" class="json-tree mono-label">The tree grows here as you type.</div>
+      </section>
+    </div>
+
+    <div class="tool-row stat-strip" id="j-stats" hidden>
+      <div class="stat-box"><b id="js-keys">0</b><span>keys</span></div>
+      <div class="stat-box"><b id="js-depth">0</b><span>max depth</span></div>
+      <div class="stat-box"><b id="js-arrays">0</b><span>arrays</span></div>
+      <div class="stat-box"><b id="js-objects">0</b><span>objects</span></div>
+    </div>
+  </div>
+</ToolLayout>
+
+<script>
+  function initJsonStudio() {
+    const input = document.getElementById('j-in') as HTMLTextAreaElement | null;
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+
+    const err = document.getElementById('j-err')!;
+    const tree = document.getElementById('j-tree')!;
+    const sizeEl = document.getElementById('j-size')!;
+    const stats = document.getElementById('j-stats')!;
+    const $ = (id: string) => document.getElementById(id)!;
+
+    const SAMPLE = {
+      name: 'Pruthvi Shetty',
+      location: 'San Francisco',
+      brews: { chai: ['ginger', 'cardamom'], coffee: 'only in emergencies' },
+      cities: ['Udupi', 'Bengaluru', 'Bloomington', 'San Francisco'],
+      privacyFirst: true,
+      toolsBuilt: 11,
+    };
+
+    function parse(): unknown | undefined {
+      err.hidden = true;
+      const raw = input!.value.trim();
+      sizeEl.textContent = raw ? `${new Blob([raw]).size.toLocaleString()} bytes` : '';
+      if (!raw) {
+        tree.textContent = 'The tree grows here as you type.';
+        stats.hidden = true;
+        return undefined;
+      }
+      try {
+        return JSON.parse(raw);
+      } catch (e: any) {
+        const m = /position (\d+)/.exec(e.message);
+        let where = '';
+        if (m) {
+          const pos = +m[1];
+          const line = raw.slice(0, pos).split('\n').length;
+          where = ` (around line ${line})`;
+        }
+        err.textContent = `✗ ${e.message}${where}`;
+        err.hidden = false;
+        return undefined;
+      }
+    }
+
+    function analyse(v: unknown, depth = 1, acc = { keys: 0, depth: 0, arrays: 0, objects: 0 }) {
+      acc.depth = Math.max(acc.depth, depth);
+      if (Array.isArray(v)) {
+        acc.arrays++;
+        v.forEach((x) => analyse(x, depth + 1, acc));
+      } else if (v && typeof v === 'object') {
+        acc.objects++;
+        for (const [, val] of Object.entries(v)) {
+          acc.keys++;
+          analyse(val, depth + 1, acc);
+        }
+      }
+      return acc;
+    }
+
+    function leaf(v: unknown): HTMLElement {
+      const s = document.createElement('span');
+      if (typeof v === 'string') { s.className = 'jv-str'; s.textContent = `"${v}"`; }
+      else if (typeof v === 'number') { s.className = 'jv-num'; s.textContent = String(v); }
+      else if (typeof v === 'boolean') { s.className = 'jv-bool'; s.textContent = String(v); }
+      else { s.className = 'jv-null'; s.textContent = 'null'; }
+      return s;
+    }
+
+    function node(key: string | null, v: unknown): HTMLElement {
+      const isArr = Array.isArray(v);
+      const isObj = v !== null && typeof v === 'object' && !isArr;
+
+      if (!isArr && !isObj) {
+        const row = document.createElement('div');
+        row.className = 'jv-row';
+        if (key !== null) {
+          const k = document.createElement('span');
+          k.className = 'jv-key';
+          k.textContent = key + ': ';
+          row.appendChild(k);
+        }
+        row.appendChild(leaf(v));
+        return row;
+      }
+
+      const entries = isArr
+        ? (v as unknown[]).map((x, i) => [String(i), x] as const)
+        : Object.entries(v as object);
+      const det = document.createElement('details');
+      det.open = true;
+      det.className = 'jv-branch';
+      const sum = document.createElement('summary');
+      const k = key !== null ? `<span class="jv-key">${key}: </span>` : '';
+      sum.innerHTML = `${k}<span class="jv-brace">${isArr ? '[' : '{'}</span><span class="jv-count">${entries.length} ${isArr ? (entries.length === 1 ? 'item' : 'items') : (entries.length === 1 ? 'key' : 'keys')}</span><span class="jv-brace">${isArr ? ']' : '}'}</span>`;
+      det.appendChild(sum);
+      const kids = document.createElement('div');
+      kids.className = 'jv-kids';
+      for (const [ck, cv] of entries) kids.appendChild(node(ck, cv));
+      det.appendChild(kids);
+      return det;
+    }
+
+    function renderTree() {
+      const v = parse();
+      if (v === undefined) return;
+      tree.textContent = '';
+      tree.appendChild(node(null, v));
+      const a = analyse(v);
+      $('js-keys').textContent = a.keys.toLocaleString();
+      $('js-depth').textContent = String(a.depth);
+      $('js-arrays').textContent = a.arrays.toLocaleString();
+      $('js-objects').textContent = a.objects.toLocaleString();
+      stats.hidden = false;
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    input.addEventListener('input', () => { clearTimeout(t); t = setTimeout(renderTree, 250); });
+
+    const reformat = (space?: number) => {
+      const v = parse();
+      if (v === undefined) return;
+      input!.value = JSON.stringify(v, null, space);
+      renderTree();
+    };
+    $('j-format').addEventListener('click', () => reformat(2));
+    $('j-format4').addEventListener('click', () => reformat(4));
+    $('j-minify').addEventListener('click', () => reformat(undefined));
+    $('j-sample').addEventListener('click', () => { input!.value = JSON.stringify(SAMPLE, null, 2); renderTree(); });
+    $('j-clear').addEventListener('click', () => { input!.value = ''; renderTree(); });
+    $('j-copy').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(input!.value);
+      (window as any).toast?.('JSON copied. 📋');
+    });
+    $('j-download').addEventListener('click', () => {
+      const blob = new Blob([input!.value], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'data.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    $('j-expand').addEventListener('click', () =>
+      tree.querySelectorAll('details').forEach((d) => (d.open = true)));
+    $('j-collapse').addEventListener('click', () =>
+      tree.querySelectorAll('details').forEach((d, i) => (d.open = i === 0)));
+  }
+  document.addEventListener('astro:page-load', initJsonStudio);
+  initJsonStudio();
+</script>
+
+<style>
+  .json-tree {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.75;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink);
+    min-height: 16rem;
+    max-height: 34rem;
+    overflow: auto;
+    padding: 0.4rem;
+  }
+  .json-tree :global(.jv-kids) {
+    margin-left: 1.1rem;
+    padding-left: 0.6rem;
+    border-left: 1px solid var(--line-soft);
+  }
+  .json-tree :global(summary) {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .json-tree :global(summary::before) {
+    content: '▸';
+    display: inline-block;
+    width: 1em;
+    color: var(--ink-faint);
+    transition: transform 0.15s var(--ease-smooth);
+  }
+  .json-tree :global(details[open] > summary::before) { transform: rotate(90deg); }
+  .json-tree :global(.jv-row) { padding-left: 1em; }
+  .json-tree :global(.jv-key) { color: var(--chai); }
+  .json-tree :global(.jv-str) { color: var(--cardamom); }
+  .json-tree :global(.jv-num) { color: var(--marigold); }
+  .json-tree :global(.jv-bool) { color: #7e5bbe; }
+  html.dark .json-tree :global(.jv-bool) { color: #b39ddb; }
+  .json-tree :global(.jv-null) { color: var(--ink-faint); font-style: italic; }
+  .json-tree :global(.jv-count) {
+    color: var(--ink-faint);
+    font-size: 0.78em;
+    margin-inline: 0.5em;
+  }
+  .json-tree :global(.jv-brace) { color: var(--ink-faint); }
+</style>

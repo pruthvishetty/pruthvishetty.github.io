@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /write
+Disallow: /family-tree/
+
+Sitemap: https://pruthvishetty.com/sitemap-index.xml

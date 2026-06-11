@@ -1,0 +1,347 @@
+/* ============================================================
+   pruthvishetty.com — design system
+   "Warm editorial craft" — paper, ink, and chai.
+   Light: morning chai on a sunlit desk.
+   Dark:  evening chai by lamplight.
+   ============================================================ */
+
+:root {
+  /* ---- palette · morning ---- */
+  --paper: #faf6ee;
+  --paper-deep: #f2ecdf;
+  --paper-raise: #fffdf8;
+  --ink: #221d18;
+  --ink-soft: #5c544b;
+  --ink-faint: #94897c;
+  --chai: #a8521d;            /* terracotta — the brew */
+  --chai-deep: #84431a;
+  --chai-wash: #a8521d14;
+  --cardamom: #5d7a58;        /* rare secondary — a leaf of it */
+  --marigold: #d9920b;        /* highlights, stars, festival trim */
+  --line: #221d181f;
+  --line-soft: #221d1812;
+  --shadow: 32 24 16;
+
+  /* ---- type ---- */
+  --font-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --font-body: 'Newsreader Variable', 'Newsreader', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-xs: 0.78rem;
+  --text-sm: 0.9rem;
+  --text-base: 1.0625rem;
+  --text-md: 1.1875rem;
+  --text-lg: 1.45rem;
+  --text-xl: clamp(1.8rem, 1.3rem + 2vw, 2.6rem);
+  --text-hero: clamp(2.6rem, 1.6rem + 4.5vw, 4.6rem);
+
+  --leading-tight: 1.12;
+  --leading-body: 1.72;
+
+  /* ---- rhythm ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --space-6: 4rem;
+  --space-7: 6.5rem;
+  --measure: 64ch;
+  --page-max: 72rem;
+  --page-pad: clamp(1.25rem, 4vw, 3rem);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  accent-color: var(--chai);
+  color-scheme: light;
+}
+
+html.dark {
+  --paper: #16120e;
+  --paper-deep: #1e1813;
+  --paper-raise: #241d17;
+  --ink: #ece3d3;
+  --ink-soft: #b3a795;
+  --ink-faint: #7d7263;
+  --chai: #d98e4a;            /* lamplight amber */
+  --chai-deep: #e8a763;
+  --chai-wash: #d98e4a1c;
+  --cardamom: #8aa385;
+  --marigold: #e0a92e;
+  --line: #ece3d324;
+  --line-soft: #ece3d314;
+  --shadow: 0 0 0;
+  color-scheme: dark;
+}
+
+/* ---- reset, but gently ---- */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+[hidden] { display: none !important; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100svh;
+  transition: background-color 0.45s var(--ease-smooth), color 0.45s var(--ease-smooth);
+}
+
+img, svg, video { display: block; max-width: 100%; }
+input, button, textarea, select { font: inherit; color: inherit; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 560;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+p { text-wrap: pretty; }
+
+a {
+  color: var(--chai);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in srgb, var(--chai) 38%, transparent);
+  transition: color 0.2s var(--ease-smooth), text-decoration-color 0.2s var(--ease-smooth);
+}
+a:hover {
+  color: var(--chai-deep);
+  text-decoration-color: currentColor;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--chai) 24%, var(--paper));
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--chai);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---- paper grain — the page itself has texture ---- */
+.grain {
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 2000;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  mix-blend-mode: multiply;
+}
+html.dark .grain { opacity: 0.07; mix-blend-mode: screen; }
+
+/* ---- utility primitives ---- */
+.wrap {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--page-pad);
+}
+
+.prose { max-width: var(--measure); }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--chai);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75em;
+}
+.eyebrow::before {
+  content: '';
+  width: 2.2em;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+/* hand-drawn squiggle underline (SVG, drawn on reveal) */
+.squiggle {
+  position: relative;
+  white-space: nowrap;
+}
+.squiggle > svg {
+  position: absolute;
+  left: -2%;
+  bottom: -0.28em;
+  width: 104%;
+  height: 0.42em;
+  overflow: visible;
+  color: var(--chai);
+}
+.squiggle > svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-squiggle 0.9s 0.5s var(--ease-smooth) forwards;
+}
+@keyframes draw-squiggle {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ---- scroll reveals ---- */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s var(--ease-spring), transform 0.7s var(--ease-spring);
+  transition-delay: var(--reveal-delay, 0s);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  padding: 0.6em 1.15em;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper-raise);
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-spring),
+    border-color 0.25s, background 0.25s;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--chai);
+  box-shadow: 0 6px 18px -8px rgb(var(--shadow) / 0.35);
+  color: var(--ink);
+}
+.btn-primary {
+  background: var(--chai);
+  border-color: var(--chai);
+  color: var(--paper);
+}
+.btn-primary:hover {
+  background: var(--chai-deep);
+  border-color: var(--chai-deep);
+  color: var(--paper);
+}
+
+/* ---- cards ---- */
+.card {
+  background: var(--paper-raise);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: 0 1px 2px rgb(var(--shadow) / 0.05);
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-spring),
+    border-color 0.3s;
+}
+a.card { text-decoration: none; color: inherit; display: block; }
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--line);
+  box-shadow: 0 14px 30px -16px rgb(var(--shadow) / 0.3);
+}
+
+/* ---- section ornament: a tiny steaming cup divider ---- */
+.ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--ink-faint);
+  margin-block: var(--space-6);
+}
+.ornament::before, .ornament::after {
+  content: '';
+  height: 1px;
+  width: min(110px, 22vw);
+  background: linear-gradient(to var(--orn-dir, right), transparent, var(--line));
+}
+.ornament::before { --orn-dir: right; }
+.ornament::after { --orn-dir: left; }
+
+/* ---- keyboard hint chips ---- */
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0.1em 0.45em;
+  background: var(--paper-raise);
+}
+
+/* ---- toast ---- */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 3000;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 0.65em 1.2em;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px -10px rgb(var(--shadow) / 0.5);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.3s var(--ease-spring), transform 0.3s var(--ease-spring);
+  pointer-events: none;
+  max-width: min(90vw, 30rem);
+  text-align: center;
+}
+.toast.show { opacity: 1; transform: none; }
+
+/* ---- scrollbar, subtly inked ---- */
+@supports (scrollbar-width: thin) {
+  * { scrollbar-width: thin; scrollbar-color: var(--ink-faint) transparent; }
+}

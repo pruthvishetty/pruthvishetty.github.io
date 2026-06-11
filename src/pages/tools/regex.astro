@@ -1,0 +1,484 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Regex Playground"
+  tagline="Write the pattern, watch the matches light up."
+>
+  <div class="tool-body" id="x-root">
+    <section class="tool-panel">
+      <div class="panel-label"><span>Pattern</span><span id="x-flag-label">/g</span></div>
+      <div class="rx-pattern-row">
+        <span class="rx-slash" aria-hidden="true">/</span>
+        <input
+          id="x-pattern"
+          class="tool-input rx-pattern"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          aria-label="Regular expression pattern"
+          placeholder="\b\w+@\w+\.\w+\b" />
+        <span class="rx-slash" aria-hidden="true">/</span>
+      </div>
+      <div class="tool-row" style="margin-bottom:0">
+        <span class="mono-label">Flags</span>
+        <button class="chip-btn active" data-flag="g" title="global — find all matches">g</button>
+        <button class="chip-btn" data-flag="i" title="ignore case">i</button>
+        <button class="chip-btn" data-flag="m" title="multiline — ^ and $ per line">m</button>
+        <button class="chip-btn" data-flag="s" title="dotAll — . matches newlines">s</button>
+        <button class="chip-btn" data-flag="u" title="unicode">u</button>
+        <span style="flex:1"></span>
+        <span class="mono-label">Presets</span>
+        <select id="x-preset" class="tool-select rx-preset" aria-label="Pattern presets">
+          <option value="">Pick one…</option>
+          <option value="email">Email</option>
+          <option value="url">URL</option>
+          <option value="ipv4">IPv4</option>
+          <option value="isodate">ISO date</option>
+          <option value="hex">Hex color</option>
+          <option value="phone">Phone (US)</option>
+        </select>
+      </div>
+      <p class="tool-error" id="x-err" hidden></p>
+    </section>
+
+    <div class="tool-grid cols-2" style="margin-top:var(--space-3)">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Test text</span><span id="x-size"></span></div>
+        <textarea
+          id="x-text"
+          class="tool-textarea"
+          spellcheck="false"
+          aria-label="Test text"></textarea>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Matches lit up</span><span id="x-count-label"></span></div>
+        <div id="x-view" class="rx-view" aria-live="polite">Matches glow here as you type.</div>
+      </section>
+    </div>
+
+    <div class="tool-row stat-strip" id="x-stats" hidden>
+      <div class="stat-box"><b id="xs-matches">0</b><span>matches</span></div>
+      <div class="stat-box"><b id="xs-groups">0</b><span>capture groups</span></div>
+      <div class="stat-box"><b id="xs-time">0</b><span>ms</span></div>
+    </div>
+
+    <section class="tool-panel" style="margin-top:var(--space-3)">
+      <div class="panel-label"><span>Match table</span></div>
+      <div class="rx-table-wrap">
+        <table class="rx-table" id="x-table">
+          <thead>
+            <tr><th>#</th><th>match</th><th>index</th><th>groups</th></tr>
+          </thead>
+          <tbody id="x-tbody">
+            <tr><td colspan="4" class="rx-empty">No matches yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tool-note" id="x-more" hidden></p>
+    </section>
+
+    <section class="tool-panel" style="margin-top:var(--space-3)">
+      <div class="panel-label">
+        <span>Replace</span>
+        <button class="chip-btn" id="x-copy">Copy result</button>
+      </div>
+      <input
+        id="x-replace"
+        class="tool-input"
+        type="text"
+        spellcheck="false"
+        autocomplete="off"
+        aria-label="Replacement string"
+        placeholder="Replacement — supports $1, $&lt;name&gt;, $&amp;" />
+      <div id="x-replaced" class="rx-view rx-replaced">The replaced text appears here.</div>
+    </section>
+
+    <details class="rx-cheat tool-panel">
+      <summary>Cheatsheet — the tokens worth memorizing</summary>
+      <div class="rx-cheat-grid">
+        <div><code>\d</code><span>digit 0–9</span></div>
+        <div><code>\w</code><span>word char [A-Za-z0-9_]</span></div>
+        <div><code>\s</code><span>whitespace</span></div>
+        <div><code>\D \W \S</code><span>negations of the above</span></div>
+        <div><code>.</code><span>any char (not newline unless <code>s</code>)</span></div>
+        <div><code>\b</code><span>word boundary</span></div>
+        <div><code>^ $</code><span>start / end (per line with <code>m</code>)</span></div>
+        <div><code>*</code><span>0 or more</span></div>
+        <div><code>+</code><span>1 or more</span></div>
+        <div><code>?</code><span>0 or 1 (or lazy after * +)</span></div>
+        <div><code>{'{n,m}'}</code><span>between n and m times</span></div>
+        <div><code>[abc] [^abc]</code><span>char set / negated set</span></div>
+        <div><code>a|b</code><span>alternation</span></div>
+        <div><code>(...)</code><span>capture group → $1</span></div>
+        <div><code>(?:...)</code><span>group without capturing</span></div>
+        <div><code>(?&lt;name&gt;...)</code><span>named group → $&lt;name&gt;</span></div>
+        <div><code>(?=...) (?!...)</code><span>lookahead / negative</span></div>
+        <div><code>(?&lt;=...) (?&lt;!...)</code><span>lookbehind / negative</span></div>
+      </div>
+    </details>
+
+    <p class="tool-note">Patterns run locally with JavaScript's own regex engine — nothing leaves your browser.</p>
+  </div>
+</ToolLayout>
+
+<script>
+  function initRegexPlayground() {
+    const root = document.getElementById('x-root');
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const patternEl = $('x-pattern') as HTMLInputElement;
+    const textEl = $('x-text') as HTMLTextAreaElement;
+    const replaceEl = $('x-replace') as HTMLInputElement;
+    const presetEl = $('x-preset') as HTMLSelectElement;
+    const view = $('x-view');
+    const replaced = $('x-replaced');
+    const tbody = $('x-tbody');
+    const err = $('x-err');
+    const stats = $('x-stats');
+    const more = $('x-more');
+    const flagChips = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-flag]'));
+
+    const MAX_MATCHES = 5000;
+    const MAX_ROWS = 200;
+
+    const PRESETS: Record<string, string> = {
+      email: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}',
+      url: 'https?:\\/\\/[^\\s)>\'"]+',
+      ipv4: '\\b(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\b',
+      isodate: '(?<year>\\d{4})-(?<month>0[1-9]|1[0-2])-(?<day>0[1-9]|[12]\\d|3[01])',
+      hex: '#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\\b',
+      phone: '\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}',
+    };
+
+    const SAMPLE = `Chai Club — weekly digest, 2026-06-10
+
+Pruthvi brewed batch #42 at 192.168.1.7 and emailed the notes
+to chai.lovers@udupi.example.com and hello@bengaluru.dev.
+RSVP by 2026-06-14 or call (415) 555-0134 / 812.555.0199.
+
+This week's cup colors: #a8521d (terracotta), #d9920b (marigold),
+and a moody #5d7a58. Full archive at https://chai.example.com/archive
+and the recipe PDF at http://tools.example.org/masala.pdf.
+
+Cities on the tasting tour: Udupi, Bengaluru, Bloomington, San Francisco.`;
+
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function activeFlags(): string {
+      return flagChips.filter((c) => c.classList.contains('active')).map((c) => c.dataset.flag).join('');
+    }
+
+    function collectMatches(re: RegExp, text: string): RegExpExecArray[] {
+      const out: RegExpExecArray[] = [];
+      if (!re.global) {
+        const m = re.exec(text);
+        if (m) out.push(m);
+        return out;
+      }
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        out.push(m);
+        if (out.length >= MAX_MATCHES) break;
+        // empty-string match: nudge forward or we loop forever
+        if (m[0] === '') re.lastIndex++;
+      }
+      return out;
+    }
+
+    function renderHighlights(text: string, matches: RegExpExecArray[]) {
+      if (!text) {
+        view.textContent = 'Matches glow here as you type.';
+        return;
+      }
+      let html = '';
+      let pos = 0;
+      for (const m of matches) {
+        if (m.index < pos) continue; // overlap guard
+        html += escapeHtml(text.slice(pos, m.index));
+        html += `<mark>${escapeHtml(m[0]) || '&#8203;'}</mark>`;
+        pos = m.index + m[0].length;
+      }
+      html += escapeHtml(text.slice(pos));
+      view.innerHTML = html;
+    }
+
+    function renderTable(matches: RegExpExecArray[]) {
+      if (!matches.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="rx-empty">No matches yet.</td></tr>';
+        more.hidden = true;
+        return;
+      }
+      const rows: string[] = [];
+      const shown = matches.slice(0, MAX_ROWS);
+      shown.forEach((m, i) => {
+        const chips: string[] = [];
+        for (let g = 1; g < m.length; g++) {
+          if (m[g] !== undefined) chips.push(`<span class="rx-gchip">${g}=${escapeHtml(m[g])}</span>`);
+        }
+        if (m.groups) {
+          for (const [name, val] of Object.entries(m.groups)) {
+            if (val !== undefined) chips.push(`<span class="rx-gchip rx-gnamed">${escapeHtml(name)}=${escapeHtml(val)}</span>`);
+          }
+        }
+        rows.push(
+          `<tr><td>${i + 1}</td><td class="rx-mcell">${escapeHtml(m[0]) || '<i>empty</i>'}</td><td>${m.index}</td><td>${chips.join(' ') || '<span class="rx-dim">—</span>'}</td></tr>`
+        );
+      });
+      tbody.innerHTML = rows.join('');
+      if (matches.length > MAX_ROWS) {
+        more.textContent = `…and ${(matches.length - MAX_ROWS).toLocaleString()} more matches not shown.`;
+        more.hidden = false;
+      } else {
+        more.hidden = true;
+      }
+    }
+
+    function renderReplace(re: RegExp | null, text: string) {
+      if (!re || !text) {
+        replaced.textContent = 'The replaced text appears here.';
+        return;
+      }
+      try {
+        replaced.textContent = text.replace(re, replaceEl.value);
+      } catch (e: any) {
+        replaced.textContent = `Replace failed: ${e.message}`;
+      }
+    }
+
+    function update() {
+      const pattern = patternEl.value;
+      const flags = activeFlags();
+      $('x-flag-label').textContent = `/${flags}`;
+      $('x-size').textContent = textEl.value ? `${textEl.value.length.toLocaleString()} chars` : '';
+      err.hidden = true;
+
+      if (!pattern) {
+        view.textContent = 'Matches glow here as you type.';
+        renderTable([]);
+        renderReplace(null, '');
+        $('x-count-label').textContent = '';
+        stats.hidden = true;
+        return;
+      }
+
+      let re: RegExp;
+      try {
+        re = new RegExp(pattern, flags);
+      } catch (e: any) {
+        err.textContent = `✗ ${e.message}`;
+        err.hidden = false;
+        stats.hidden = true;
+        return;
+      }
+
+      const text = textEl.value;
+      const t0 = performance.now();
+      const matches = collectMatches(re, text);
+      const ms = performance.now() - t0;
+
+      renderHighlights(text, matches);
+      renderTable(matches);
+      renderReplace(new RegExp(pattern, flags), text);
+
+      let groupCount = 0;
+      if (matches.length) {
+        groupCount = matches[0].length - 1;
+      } else {
+        try { groupCount = new RegExp(pattern + '|', flags).exec('')!.length - 1; } catch { /* leave at 0 */ }
+      }
+      $('xs-matches').textContent =
+        matches.length >= MAX_MATCHES ? `${MAX_MATCHES.toLocaleString()}+` : matches.length.toLocaleString();
+      $('xs-groups').textContent = String(groupCount);
+      $('xs-time').textContent = ms < 1 ? ms.toFixed(2) : ms.toFixed(1);
+      stats.hidden = false;
+      $('x-count-label').textContent = matches.length
+        ? `${matches.length >= MAX_MATCHES ? MAX_MATCHES.toLocaleString() + '+ (capped)' : matches.length.toLocaleString()} found`
+        : 'none found';
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    const updateSoon = () => { clearTimeout(t); t = setTimeout(update, 250); };
+
+    patternEl.addEventListener('input', updateSoon);
+    textEl.addEventListener('input', updateSoon);
+    replaceEl.addEventListener('input', updateSoon);
+
+    for (const chip of flagChips) {
+      chip.addEventListener('click', () => {
+        chip.classList.toggle('active');
+        chip.setAttribute('aria-pressed', String(chip.classList.contains('active')));
+        update();
+      });
+      chip.setAttribute('aria-pressed', String(chip.classList.contains('active')));
+    }
+
+    presetEl.addEventListener('change', () => {
+      const p = PRESETS[presetEl.value];
+      if (!p) return;
+      patternEl.value = p;
+      update();
+      (window as any).toast?.(`${presetEl.options[presetEl.selectedIndex].text} pattern loaded. ✨`);
+    });
+
+    $('x-copy').addEventListener('click', async () => {
+      const pattern = patternEl.value;
+      if (!pattern) { (window as any).toast?.('Nothing to copy yet — write a pattern first.'); return; }
+      try {
+        const re = new RegExp(pattern, activeFlags());
+        await navigator.clipboard.writeText(textEl.value.replace(re, replaceEl.value));
+        (window as any).toast?.('Replaced text copied. 📋');
+      } catch {
+        (window as any).toast?.('Could not copy — is the pattern valid?');
+      }
+    });
+
+    // seed it so the page lights up immediately
+    textEl.value = SAMPLE;
+    patternEl.value = PRESETS.email;
+    update();
+  }
+
+  document.addEventListener('astro:page-load', initRegexPlayground);
+  initRegexPlayground();
+</script>
+
+<style>
+  .rx-pattern-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: var(--space-2);
+  }
+  .rx-slash {
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    color: var(--chai);
+    user-select: none;
+  }
+  .rx-pattern { flex: 1; min-width: 0; }
+  .rx-preset {
+    width: auto;
+    padding: 0.35em 0.7em;
+    font-size: var(--text-xs);
+  }
+
+  .rx-view {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: 0.75em 0.9em;
+    min-height: 16rem;
+    max-height: 30rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .rx-replaced { min-height: 6rem; margin-top: var(--space-2); }
+  .rx-view :global(mark) {
+    background: color-mix(in srgb, var(--marigold) 32%, transparent);
+    color: inherit;
+    border-radius: 3px;
+    padding-block: 0.08em;
+    box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--marigold) 70%, transparent);
+  }
+
+  .rx-table-wrap { overflow-x: auto; }
+  .rx-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .rx-table th {
+    text-align: left;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    padding: 0.4em 0.7em;
+    border-bottom: 1px solid var(--line);
+  }
+  .rx-table :global(td) {
+    padding: 0.45em 0.7em;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+    color: var(--ink-soft);
+  }
+  .rx-table :global(.rx-mcell) {
+    color: var(--ink);
+    word-break: break-all;
+    background: var(--chai-wash);
+    border-radius: var(--radius-sm);
+  }
+  .rx-table :global(.rx-empty),
+  .rx-table :global(.rx-dim) { color: var(--ink-faint); font-style: italic; }
+  .rx-table :global(.rx-gchip) {
+    display: inline-block;
+    background: color-mix(in srgb, var(--cardamom) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cardamom) 35%, transparent);
+    border-radius: 999px;
+    padding: 0.05em 0.6em;
+    margin: 0.1em 0.15em 0.1em 0;
+    word-break: break-all;
+  }
+  .rx-table :global(.rx-gnamed) {
+    background: color-mix(in srgb, var(--marigold) 18%, transparent);
+    border-color: color-mix(in srgb, var(--marigold) 40%, transparent);
+  }
+
+  .rx-cheat { margin-top: var(--space-3); }
+  .rx-cheat summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    user-select: none;
+  }
+  .rx-cheat summary:hover { color: var(--chai); }
+  .rx-cheat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem 1.5rem;
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 640px) {
+    .rx-cheat-grid { grid-template-columns: 1fr; }
+  }
+  .rx-cheat-grid > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75em;
+  }
+  .rx-cheat-grid code {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--chai);
+    background: var(--chai-wash);
+    border-radius: var(--radius-sm);
+    padding: 0.05em 0.45em;
+    white-space: nowrap;
+  }
+  .rx-cheat-grid span { color: var(--ink-soft); }
+  .rx-cheat-grid span code { color: var(--ink-soft); background: transparent; padding: 0; }
+</style>

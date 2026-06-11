@@ -1,0 +1,463 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Cron Translator"
+  tagline="Five cryptic fields in, plain English out."
+>
+  <div class="tool-body">
+    <div class="tool-row">
+      <button class="chip-btn preset" data-expr="*/15 * * * *">Every 15 min</button>
+      <button class="chip-btn preset" data-expr="0 * * * *">Hourly</button>
+      <button class="chip-btn preset" data-expr="0 9 * * 1-5">9am weekdays</button>
+      <button class="chip-btn preset" data-expr="0 18 * * 1">Mondays 6pm</button>
+      <button class="chip-btn preset" data-expr="0 0 1 * *">Monthly 1st</button>
+      <button class="chip-btn preset" data-expr="0 16 * * *">Chai o'clock</button>
+    </div>
+
+    <section class="tool-panel">
+      <label class="panel-label" for="c-in"><span>Expression</span><span id="c-norm"></span></label>
+      <input
+        id="c-in"
+        class="tool-input cron-input"
+        type="text"
+        spellcheck="false"
+        autocomplete="off"
+        autocapitalize="off"
+        value="0 16 * * *"
+        placeholder="* * * * *"
+        aria-label="Cron expression, five space-separated fields"
+      />
+      <p class="tool-error" id="c-err" hidden></p>
+      <p class="cron-english" id="c-english" aria-live="polite"></p>
+      <div class="field-strip" role="group" aria-label="Field breakdown">
+        <div class="field-box"><b id="c-f0">·</b><span>minute</span></div>
+        <div class="field-box"><b id="c-f1">·</b><span>hour</span></div>
+        <div class="field-box"><b id="c-f2">·</b><span>day of month</span></div>
+        <div class="field-box"><b id="c-f3">·</b><span>month</span></div>
+        <div class="field-box"><b id="c-f4">·</b><span>day of week</span></div>
+      </div>
+    </section>
+
+    <section class="tool-panel" style="margin-top: var(--space-3);">
+      <div class="panel-label"><span>Next 5 runs</span><span id="c-runs-tz"></span></div>
+      <div class="runs" id="c-runs"></div>
+    </section>
+
+    <details class="legend">
+      <summary class="mono-label">What the five fields mean</summary>
+      <div class="legend-grid">
+        <div><b>minute</b><span>0–59</span></div>
+        <div><b>hour</b><span>0–23</span></div>
+        <div><b>day of month</b><span>1–31</span></div>
+        <div><b>month</b><span>1–12, or jan–dec</span></div>
+        <div><b>day of week</b><span>0–7, or sun–sat (0 and 7 are both Sunday)</span></div>
+      </div>
+      <p>
+        Symbols: <code>*</code> any value · <code>a,b</code> lists · <code>a-b</code> ranges ·
+        <code>*/n</code> and <code>a-b/n</code> steps. Shorthands like <code>@daily</code> work too.
+        When both day fields are restricted, classic cron fires when <em>either</em> matches.
+      </p>
+    </details>
+  </div>
+</ToolLayout>
+
+<script>
+  import cronstrue from 'cronstrue';
+
+  function initCronTranslator() {
+    const input = document.getElementById('c-in') as HTMLInputElement | null;
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const err = $('c-err');
+    const english = $('c-english');
+    const norm = $('c-norm');
+    const runsEl = $('c-runs');
+    const fieldEls = [0, 1, 2, 3, 4].map((i) => $(`c-f${i}`));
+    const presets = Array.from(document.querySelectorAll<HTMLButtonElement>('.preset'));
+
+    $('c-runs-tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+
+    const MACROS: Record<string, string> = {
+      '@hourly': '0 * * * *',
+      '@daily': '0 0 * * *',
+      '@midnight': '0 0 * * *',
+      '@weekly': '0 0 * * 0',
+      '@monthly': '0 0 1 * *',
+      '@yearly': '0 0 1 1 *',
+      '@annually': '0 0 1 1 *',
+    };
+    const MONTHS: Record<string, number> = {
+      jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+      jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+    };
+    const DOWS: Record<string, number> = {
+      sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6,
+    };
+
+    /* ---- parsing ---- */
+    function parseField(raw: string, min: number, max: number, names?: Record<string, number>): Set<number> {
+      const set = new Set<number>();
+      const toNum = (tok: string): number => {
+        const t = tok.toLowerCase();
+        if (names && names[t] !== undefined) return names[t];
+        if (!/^\d+$/.test(tok)) throw new Error(`"${tok}" isn't a number${names ? ' or a name' : ''}.`);
+        return parseInt(tok, 10);
+      };
+      for (const part of raw.split(',')) {
+        if (!part) throw new Error('Empty list item — stray comma?');
+        const pieces = part.split('/');
+        if (pieces.length > 2) throw new Error(`Too many slashes in "${part}".`);
+        const [rangePart, stepPart] = pieces;
+        const step = stepPart === undefined ? 1 : (/^\d+$/.test(stepPart) ? parseInt(stepPart, 10) : NaN);
+        if (!step || Number.isNaN(step)) throw new Error(`Bad step in "${part}".`);
+        let lo: number;
+        let hi: number;
+        if (rangePart === '*') {
+          lo = min; hi = max;
+        } else if (rangePart.includes('-')) {
+          const ends = rangePart.split('-');
+          if (ends.length !== 2 || !ends[0] || !ends[1]) throw new Error(`Bad range "${rangePart}".`);
+          lo = toNum(ends[0]); hi = toNum(ends[1]);
+        } else {
+          lo = toNum(rangePart);
+          hi = stepPart === undefined ? lo : max; // vixie: "5/10" means 5 to max, step 10
+        }
+        if (lo < min || hi > max) throw new Error(`"${part}" is outside ${min}–${max}.`);
+        if (lo > hi) throw new Error(`Range "${part}" runs backwards.`);
+        for (let v = lo; v <= hi; v += step) set.add(v);
+      }
+      return set;
+    }
+
+    interface Spec {
+      minutes: Set<number>; hours: Set<number>;
+      dom: Set<number>; domStar: boolean;
+      months: Set<number>;
+      dow: Set<number>; dowStar: boolean;
+    }
+
+    function parseCron(f: string[]): Spec {
+      const minutes = parseField(f[0], 0, 59);
+      const hours = parseField(f[1], 0, 23);
+      const dom = parseField(f[2], 1, 31);
+      const months = parseField(f[3], 1, 12, MONTHS);
+      const dow = parseField(f[4], 0, 7, DOWS);
+      if (dow.has(7)) { dow.delete(7); dow.add(0); }
+      // vixie cron: the "star" flag for the dom/dow OR-rule is set when the
+      // field begins with '*' (so "*/2" still counts as unrestricted).
+      return {
+        minutes, hours, dom, months, dow,
+        domStar: f[2].startsWith('*'),
+        dowStar: f[4].startsWith('*'),
+      };
+    }
+
+    /* ---- next runs: walk months → days → hours → minutes ---- */
+    function nextRuns(spec: Spec, n = 5): Date[] {
+      const out: Date[] = [];
+      let cur = new Date(Math.floor(Date.now() / 60000) * 60000 + 60000);
+      const limit = Date.now() + 5 * 366 * 86400000; // ~5 years
+      while (out.length < n && cur.getTime() <= limit) {
+        if (!spec.months.has(cur.getMonth() + 1)) {
+          cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1, 0, 0, 0, 0);
+          continue;
+        }
+        const domOk = spec.dom.has(cur.getDate());
+        const dowOk = spec.dow.has(cur.getDay());
+        const dayOk = spec.domStar && spec.dowStar ? true
+          : spec.domStar ? dowOk
+          : spec.dowStar ? domOk
+          : domOk || dowOk; // both restricted → standard cron OR rule
+        if (!dayOk) {
+          cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1, 0, 0, 0, 0);
+          continue;
+        }
+        if (!spec.hours.has(cur.getHours())) {
+          cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate(), cur.getHours() + 1, 0, 0, 0);
+          continue;
+        }
+        if (!spec.minutes.has(cur.getMinutes())) {
+          cur = new Date(cur.getTime() + 60000);
+          continue;
+        }
+        out.push(cur);
+        cur = new Date(cur.getTime() + 60000);
+      }
+      return out;
+    }
+
+    /* ---- rendering ---- */
+    function relative(ms: number): string {
+      const diff = ms - Date.now();
+      const abs = Math.abs(diff);
+      const phrase = (v: number, unit: string, approx = false) => {
+        const r = Math.round(v);
+        const u = r === 1 ? unit : `${unit}s`;
+        const core = `${approx ? 'about ' : ''}${r} ${u}`;
+        return diff < 0 ? `${core} ago` : `in ${core}`;
+      };
+      if (abs < 60_000) return diff < 0 ? 'moments ago' : 'in under a minute';
+      if (abs < 90 * 60_000) return phrase(abs / 60_000, 'minute');
+      if (abs < 36 * 3_600_000) return phrase(abs / 3_600_000, 'hour', true);
+      if (abs < 45 * 86_400_000) return phrase(abs / 86_400_000, 'day');
+      if (abs < 550 * 86_400_000) return phrase(abs / 2_629_800_000, 'month', true);
+      return phrase(abs / 31_557_600_000, 'year', true);
+    }
+
+    function fmtLocal(d: Date): string {
+      const date = new Intl.DateTimeFormat('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      }).format(d);
+      const time = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true,
+      }).format(d);
+      return `${date} · ${time}`;
+    }
+
+    function renderRuns(runs: Date[]) {
+      runsEl.textContent = '';
+      if (runs.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'runs-empty';
+        p.textContent = "Never fires in the next 5 years. That's a very quiet job.";
+        runsEl.appendChild(p);
+        return;
+      }
+      runs.forEach((d, i) => {
+        const row = document.createElement('div');
+        row.className = 'run-row';
+        const idx = document.createElement('span');
+        idx.className = 'run-idx';
+        idx.textContent = `#${i + 1}`;
+        const when = document.createElement('span');
+        when.className = 'run-when';
+        when.textContent = fmtLocal(d);
+        const rel = document.createElement('span');
+        rel.className = 'run-rel';
+        rel.textContent = relative(d.getTime());
+        row.append(idx, when, rel);
+        runsEl.appendChild(row);
+      });
+    }
+
+    function fillFields(fields: string[]) {
+      fieldEls.forEach((el, i) => {
+        const v = fields[i];
+        el.textContent = v ?? '·';
+        el.parentElement!.classList.toggle('hot', !!v && v !== '*');
+      });
+    }
+
+    function quietRuns(msg: string) {
+      runsEl.textContent = '';
+      const p = document.createElement('p');
+      p.className = 'runs-empty';
+      p.textContent = msg;
+      runsEl.appendChild(p);
+    }
+
+    function fail(msg: string) {
+      err.textContent = `✗ ${msg}`;
+      err.hidden = false;
+      english.textContent = '';
+      quietRuns('Fix the expression and the schedule appears here.');
+    }
+
+    function update() {
+      const raw = input.value.trim();
+      err.hidden = true;
+      norm.textContent = '';
+      presets.forEach((b) => b.classList.toggle('active', b.dataset.expr === raw));
+
+      if (!raw) {
+        english.textContent = 'Type an expression — or steal a preset above.';
+        fillFields([]);
+        quietRuns('Nothing scheduled yet.');
+        return;
+      }
+      let expr = raw;
+      if (raw.startsWith('@')) {
+        const mapped = MACROS[raw.toLowerCase()];
+        if (!mapped) {
+          fillFields([]);
+          fail(raw.toLowerCase() === '@reboot'
+            ? '@reboot fires at boot — no clock for me to translate.'
+            : `Unknown shorthand "${raw}" — try @hourly, @daily, @weekly, @monthly, or @yearly.`);
+          return;
+        }
+        expr = mapped;
+        norm.textContent = `= ${expr}`;
+      }
+      const fields = expr.split(/\s+/);
+      fillFields(fields);
+      if (fields.length !== 5) {
+        fail(`Expected 5 fields, got ${fields.length}.`);
+        return;
+      }
+      try {
+        const spec = parseCron(fields);
+        english.textContent = cronstrue.toString(expr);
+        renderRuns(nextRuns(spec));
+      } catch (e) {
+        fail(String(e).replace(/^Error:\s*/, ''));
+      }
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    input.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(update, 200);
+    });
+
+    presets.forEach((b) => {
+      b.addEventListener('click', () => {
+        input.value = b.dataset.expr!;
+        update();
+        (window as any).toast?.(`${b.textContent} it is.`);
+      });
+    });
+
+    update();
+  }
+  document.addEventListener('astro:page-load', initCronTranslator);
+  initCronTranslator();
+</script>
+
+<style>
+  .cron-input {
+    text-align: center;
+    font-size: clamp(1.1rem, 1rem + 1vw, 1.45rem);
+    letter-spacing: 0.18em;
+    padding: 0.65em 0.9em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cron-english {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.2rem, 1.05rem + 1vw, 1.6rem);
+    line-height: 1.4;
+    color: var(--ink);
+    margin-top: var(--space-3);
+    min-height: 1.5em;
+    text-wrap: balance;
+  }
+
+  .field-strip {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+  .field-box {
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: var(--space-2);
+    text-align: center;
+    transition: background 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
+  }
+  .field-box b {
+    display: block;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: var(--text-md);
+    color: var(--ink-soft);
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+  .field-box span {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .field-box.hot {
+    background: var(--chai-wash);
+    border-color: color-mix(in srgb, var(--chai) 35%, transparent);
+  }
+  .field-box.hot b { color: var(--chai); }
+  @media (max-width: 620px) {
+    .field-strip { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+  }
+
+  .runs { display: flex; flex-direction: column; }
+  .runs :global(.run-row) {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    padding: 0.6rem 0.4rem;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .runs :global(.run-row:last-child) { border-bottom: none; }
+  .runs :global(.run-idx) {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--ink-faint);
+  }
+  .runs :global(.run-when) {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .runs :global(.run-rel) {
+    margin-left: auto;
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--chai);
+  }
+  .runs :global(.runs-empty) {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--ink-faint);
+    padding: 0.4rem 0.4rem;
+  }
+  @media (max-width: 480px) {
+    .runs :global(.run-rel) { margin-left: 0; width: 100%; }
+  }
+
+  .legend {
+    margin-top: var(--space-3);
+    background: var(--paper-raise);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+  }
+  .legend summary { cursor: pointer; user-select: none; }
+  .legend summary:hover { color: var(--chai); }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+  .legend-grid b {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--chai);
+  }
+  .legend-grid span { font-size: var(--text-sm); color: var(--ink-soft); }
+  .legend p {
+    font-size: var(--text-sm);
+    color: var(--ink-faint);
+    margin-top: var(--space-3);
+  }
+  .legend code {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    padding: 0.1em 0.4em;
+  }
+</style>

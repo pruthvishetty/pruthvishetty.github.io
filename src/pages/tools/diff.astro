@@ -1,0 +1,289 @@
+---
+import ToolLayout from '../../layouts/ToolLayout.astro';
+---
+
+<ToolLayout
+  name="Diff Desk"
+  tagline="Two texts walk in; every change walks out highlighted."
+>
+  <div class="tool-body" id="d-root">
+    <div class="tool-row">
+      <span class="mono-label">Compare by</span>
+      <button class="chip-btn active" data-mode="lines">Lines</button>
+      <button class="chip-btn" data-mode="words">Words</button>
+      <button class="chip-btn" data-mode="chars">Characters</button>
+      <span style="flex:1"></span>
+      <button class="chip-btn" id="d-swap" title="Swap the two texts">Swap ⇄</button>
+      <button class="chip-btn" id="d-sample">Sample</button>
+      <button class="chip-btn" id="d-clear">Clear</button>
+    </div>
+
+    <div class="tool-grid cols-2">
+      <section class="tool-panel">
+        <div class="panel-label"><span>Original</span><span id="d-size-a"></span></div>
+        <textarea
+          id="d-a"
+          class="tool-textarea"
+          spellcheck="false"
+          aria-label="Original text"
+          placeholder="The before text — yesterday's chai recipe…"></textarea>
+      </section>
+
+      <section class="tool-panel">
+        <div class="panel-label"><span>Changed</span><span id="d-size-b"></span></div>
+        <textarea
+          id="d-b"
+          class="tool-textarea"
+          spellcheck="false"
+          aria-label="Changed text"
+          placeholder="The after text — today's improved brew…"></textarea>
+      </section>
+    </div>
+
+    <div class="tool-row stat-strip" id="d-stats" hidden>
+      <div class="stat-box"><b id="ds-add">0</b><span id="ds-add-label">lines added</span></div>
+      <div class="stat-box"><b id="ds-del">0</b><span id="ds-del-label">lines removed</span></div>
+      <div class="stat-box"><b id="ds-same">0</b><span id="ds-same-label">lines unchanged</span></div>
+    </div>
+
+    <section class="tool-panel">
+      <div class="panel-label"><span>Diff</span><span id="d-mode-label">line by line</span></div>
+      <div id="d-out" class="diff-out" aria-live="polite">Type or paste on both sides — the diff brews here.</div>
+    </section>
+
+    <p class="tool-note">Everything compares locally in your browser. Nothing is uploaded, logged, or steeped elsewhere.</p>
+  </div>
+</ToolLayout>
+
+<script>
+  import { diffLines, diffWords, diffChars } from 'diff';
+
+  function initDiffDesk() {
+    const root = document.getElementById('d-root');
+    if (!root || root.dataset.wired) return;
+    root.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const a = $('d-a') as HTMLTextAreaElement;
+    const b = $('d-b') as HTMLTextAreaElement;
+    const out = $('d-out');
+    const stats = $('d-stats');
+    const modeChips = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-mode]'));
+
+    let mode: 'lines' | 'words' | 'chars' = 'lines';
+
+    const SAMPLE_A = `Masala Chai — house recipe
+Serves: 2 cups
+
+1. Crush 4 cardamom pods and a thumb of ginger.
+2. Boil 1 cup water with the spices for 3 minutes.
+3. Add 2 tsp loose Assam tea and simmer.
+4. Pour in 1 cup whole milk.
+5. Add 2 tsp sugar.
+6. Boil until it threatens to spill over, once.
+7. Strain into cups and serve hot.
+
+Best enjoyed on a Bengaluru balcony at dusk.`;
+
+    const SAMPLE_B = `Masala Chai — house recipe
+Serves: 2 cups
+
+1. Crush 5 cardamom pods, a thumb of ginger, and one clove.
+2. Boil 1 cup water with the spices for 4 minutes.
+3. Add 2 tsp loose Assam tea and simmer.
+4. Pour in 1 cup oat milk.
+5. Add 1 tsp jaggery.
+6. Boil until it threatens to spill over, twice.
+7. Strain into cups and serve hot.
+8. Argue gently about whether biscuits are mandatory.
+
+Best enjoyed on a San Francisco fire escape at dusk.`;
+
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function sizes() {
+      $('d-size-a').textContent = a.value ? `${a.value.length.toLocaleString()} chars` : '';
+      $('d-size-b').textContent = b.value ? `${b.value.length.toLocaleString()} chars` : '';
+    }
+
+    function countUnit(value: string): number {
+      if (mode === 'lines') {
+        const lines = value.split('\n');
+        if (lines[lines.length - 1] === '') lines.pop();
+        return lines.length;
+      }
+      if (mode === 'words') return (value.match(/\S+/g) || []).length;
+      return value.length;
+    }
+
+    function renderLineView(parts: ReturnType<typeof diffLines>): string {
+      let html = '';
+      for (const p of parts) {
+        const lines = p.value.split('\n');
+        if (lines[lines.length - 1] === '') lines.pop();
+        const cls = p.added ? 'dl-add' : p.removed ? 'dl-del' : 'dl-same';
+        const sign = p.added ? '+' : p.removed ? '−' : ' ';
+        for (const line of lines) {
+          html += `<div class="dl ${cls}"><span class="dl-gut" aria-hidden="true">${sign}</span><span class="dl-txt">${escapeHtml(line) || '&nbsp;'}</span></div>`;
+        }
+      }
+      return html;
+    }
+
+    function renderInlineView(parts: ReturnType<typeof diffWords>): string {
+      let html = '<div class="d-inline">';
+      for (const p of parts) {
+        const esc = escapeHtml(p.value);
+        if (p.added) html += `<ins>${esc}</ins>`;
+        else if (p.removed) html += `<del>${esc}</del>`;
+        else html += esc;
+      }
+      return html + '</div>';
+    }
+
+    function render() {
+      sizes();
+      if (!a.value && !b.value) {
+        out.textContent = 'Type or paste on both sides — the diff brews here.';
+        stats.hidden = true;
+        return;
+      }
+
+      const parts =
+        mode === 'lines' ? diffLines(a.value, b.value)
+        : mode === 'words' ? diffWords(a.value, b.value)
+        : diffChars(a.value, b.value);
+
+      let add = 0, del = 0, same = 0;
+      for (const p of parts) {
+        const n = countUnit(p.value);
+        if (p.added) add += n;
+        else if (p.removed) del += n;
+        else same += n;
+      }
+
+      out.innerHTML = mode === 'lines' ? renderLineView(parts) : renderInlineView(parts);
+
+      const unit = mode === 'lines' ? 'lines' : mode === 'words' ? 'words' : 'chars';
+      $('ds-add').textContent = add.toLocaleString();
+      $('ds-del').textContent = del.toLocaleString();
+      $('ds-same').textContent = same.toLocaleString();
+      $('ds-add-label').textContent = `${unit} added`;
+      $('ds-del-label').textContent = `${unit} removed`;
+      $('ds-same-label').textContent = `${unit} unchanged`;
+      stats.hidden = false;
+
+      $('d-mode-label').textContent =
+        mode === 'lines' ? 'line by line' : mode === 'words' ? 'word by word' : 'character by character';
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    const renderSoon = () => { clearTimeout(t); t = setTimeout(render, 250); };
+
+    a.addEventListener('input', renderSoon);
+    b.addEventListener('input', renderSoon);
+
+    for (const chip of modeChips) {
+      chip.addEventListener('click', () => {
+        mode = chip.dataset.mode as typeof mode;
+        modeChips.forEach((c) => {
+          c.classList.toggle('active', c === chip);
+          c.setAttribute('aria-pressed', String(c === chip));
+        });
+        renderSoon();
+      });
+      chip.setAttribute('aria-pressed', String(chip.classList.contains('active')));
+    }
+
+    $('d-swap').addEventListener('click', () => {
+      [a.value, b.value] = [b.value, a.value];
+      render();
+      (window as any).toast?.('Sides swapped. ⇄');
+    });
+
+    $('d-sample').addEventListener('click', () => {
+      a.value = SAMPLE_A;
+      b.value = SAMPLE_B;
+      render();
+      (window as any).toast?.('Two chai recipes loaded. ☕');
+    });
+
+    $('d-clear').addEventListener('click', () => {
+      a.value = '';
+      b.value = '';
+      render();
+    });
+  }
+
+  document.addEventListener('astro:page-load', initDiffDesk);
+  initDiffDesk();
+</script>
+
+<style>
+  .diff-out {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.4rem;
+    min-height: 10rem;
+    max-height: 36rem;
+    overflow: auto;
+  }
+  .diff-out :global(.dl) {
+    display: flex;
+    align-items: baseline;
+    border-radius: var(--radius-sm);
+    padding-inline: 0.35rem;
+  }
+  .diff-out :global(.dl-gut) {
+    flex: 0 0 1.4em;
+    user-select: none;
+    color: var(--ink-faint);
+    text-align: center;
+  }
+  .diff-out :global(.dl-txt) {
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-width: 0;
+  }
+  .diff-out :global(.dl-add) {
+    background: color-mix(in srgb, var(--cardamom) 22%, transparent);
+  }
+  .diff-out :global(.dl-add .dl-gut) { color: var(--cardamom); font-weight: 600; }
+  .diff-out :global(.dl-del) {
+    background: color-mix(in srgb, #c0392b 18%, transparent);
+  }
+  .diff-out :global(.dl-del .dl-gut) { color: #c0392b; font-weight: 600; }
+  html.dark .diff-out :global(.dl-del .dl-gut) { color: #e57368; }
+
+  .diff-out :global(.d-inline) {
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding-inline: 0.35rem;
+  }
+  .diff-out :global(ins) {
+    text-decoration: none;
+    background: color-mix(in srgb, var(--cardamom) 22%, transparent);
+    border-radius: 3px;
+    padding-block: 0.08em;
+  }
+  .diff-out :global(del) {
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, #c0392b 65%, var(--ink));
+    background: color-mix(in srgb, #c0392b 18%, transparent);
+    border-radius: 3px;
+    padding-block: 0.08em;
+  }
+</style>

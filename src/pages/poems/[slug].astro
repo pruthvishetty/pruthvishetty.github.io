@@ -1,0 +1,177 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const poems = (await getCollection('poems')).sort(
+    (a, b) => a.data.date.valueOf() - b.data.date.valueOf()
+  );
+  return poems.map((poem, i) => ({
+    params: { slug: poem.id },
+    props: {
+      poem,
+      prev: poems[i - 1] ?? null,
+      next: poems[i + 1] ?? null,
+    },
+  }));
+}
+
+const { poem, prev, next } = Astro.props;
+const { Content } = await render(poem);
+
+const fmtDate = poem.data.date.toLocaleDateString('en-US', {
+  day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+});
+---
+
+<BaseLayout
+  title={`${poem.data.title} — a poem by Pruthvi Shetty`}
+  description={poem.data.theme ?? `“${poem.data.title}” — a poem by Pruthvi Shetty.`}
+>
+  <article class="poem-page wrap">
+    <header class="poem-head">
+      <a href="/writing/" class="back mono-label">← all writing</a>
+      <h1 class="reveal">{poem.data.title}</h1>
+      {poem.data.theme && <p class="epigraph reveal" style="--reveal-delay:.1s">{poem.data.theme}</p>}
+    </header>
+
+    <div class="verse reveal" style="--reveal-delay:.2s">
+      <Content />
+    </div>
+
+    <footer class="poem-foot reveal" style="--reveal-delay:.3s">
+      <p class="signature">— {poem.data.author}<span class="sig-date"> · {fmtDate}</span></p>
+      <button id="share-poem" class="btn" data-title={poem.data.title}>Share this poem</button>
+    </footer>
+
+    <nav class="poem-nav" aria-label="More poems">
+      {prev ? (
+        <a href={`/poems/${prev.id}/`} class="poem-nav-link">
+          <span class="mono-label">← earlier</span>
+          <span class="poem-nav-title">{prev.data.title}</span>
+        </a>
+      ) : <span />}
+      {next ? (
+        <a href={`/poems/${next.id}/`} class="poem-nav-link next">
+          <span class="mono-label">later →</span>
+          <span class="poem-nav-title">{next.data.title}</span>
+        </a>
+      ) : <span />}
+    </nav>
+  </article>
+</BaseLayout>
+
+<script>
+  function initShare() {
+    const btn = document.getElementById('share-poem');
+    if (!btn || btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', async () => {
+      const data = {
+        title: btn.dataset.title,
+        text: `“${btn.dataset.title}” — a poem by Pruthvi Shetty`,
+        url: location.href,
+      };
+      if (navigator.share) {
+        try { await navigator.share(data); } catch {}
+      } else {
+        await navigator.clipboard.writeText(location.href);
+        window.toast?.('Link copied — pass it on like a good cup. ☕');
+      }
+    });
+  }
+  document.addEventListener('astro:page-load', initShare);
+  initShare();
+</script>
+
+<style>
+  .poem-page {
+    max-width: 44rem;
+    padding-block: clamp(2.5rem, 7vh, 5rem) var(--space-6);
+  }
+  .back {
+    text-decoration: none;
+    color: var(--ink-faint);
+    letter-spacing: 0.12em;
+  }
+  .back:hover { color: var(--chai); }
+  .poem-head h1 {
+    font-size: var(--text-xl);
+    font-style: italic;
+    font-variation-settings: 'SOFT' 70, 'WONK' 1;
+    margin-top: var(--space-4);
+  }
+  .epigraph {
+    margin-top: var(--space-3);
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--chai);
+    color: var(--ink-soft);
+    font-style: italic;
+    max-width: 52ch;
+  }
+
+  .verse {
+    margin-top: var(--space-6);
+    font-size: var(--text-md);
+    line-height: 1.9;
+  }
+  .verse :global(p) {
+    margin-bottom: 1.6em;
+  }
+  .verse :global(p:first-of-type)::first-letter {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 2.6em;
+    line-height: 0.8;
+    float: left;
+    padding-right: 0.1em;
+    padding-top: 0.06em;
+    color: var(--chai);
+  }
+
+  .poem-foot {
+    margin-top: var(--space-5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+  .signature {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: 'SOFT' 60, 'WONK' 1;
+    font-size: var(--text-md);
+  }
+  .sig-date {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: var(--text-xs);
+    color: var(--ink-faint);
+    letter-spacing: 0.06em;
+  }
+
+  .poem-nav {
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--line-soft);
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .poem-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    text-decoration: none;
+    color: inherit;
+  }
+  .poem-nav-link.next { text-align: right; }
+  .poem-nav-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: 'SOFT' 60, 'WONK' 1;
+    transition: color 0.2s;
+  }
+  .poem-nav-link:hover .poem-nav-title { color: var(--chai); }
+</style>

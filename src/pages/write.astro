@@ -1,0 +1,444 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="The writing desk — Pruthvi Shetty" noindex={true}>
+  <div class="wrap desk-wrap">
+    <!-- ---------------- gate ---------------- -->
+    <section id="gate" class="gate">
+      <div class="gate-card">
+        <div class="gate-cup" aria-hidden="true">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <g class="gate-steam">
+              <path d="M9 5c0-1 .8-1.4.8-2.4" />
+              <path d="M12.5 5c0-1 .8-1.4.8-2.4" />
+            </g>
+            <path d="M5 9h12v4.5a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V9Z" />
+            <path d="M17 10.5h1.4a2.3 2.3 0 0 1 0 4.6H16.6" />
+            <path d="M6.5 21.5h11" />
+          </svg>
+        </div>
+        <h1>The writing desk</h1>
+        <p class="gate-sub">A quiet corner for new verses. The kettle’s on — what’s the word?</p>
+        <form id="gate-form" autocomplete="off">
+          <input id="gate-pw" type="password" placeholder="Password" autocomplete="current-password" required aria-label="Password" />
+          <button type="submit" class="btn btn-primary">Unlock</button>
+        </form>
+        <p id="gate-err" class="tool-error" hidden></p>
+        <p id="gate-mode" class="mono-label" hidden></p>
+      </div>
+    </section>
+
+    <!-- ---------------- desk ---------------- -->
+    <section id="desk" hidden>
+      <header class="desk-head">
+        <div>
+          <p class="eyebrow">The writing desk</p>
+          <h1 id="desk-title">A new poem</h1>
+        </div>
+        <div class="desk-actions">
+          <select id="poem-select" class="tool-select" aria-label="Open an existing poem">
+            <option value="">+ New poem</option>
+          </select>
+          <button id="publish" class="btn btn-primary">Publish</button>
+        </div>
+      </header>
+
+      <div class="desk-grid">
+        <div class="desk-form">
+          <label class="field">
+            <span class="mono-label">Title</span>
+            <input id="f-title" class="tool-input" placeholder="A Different Warmth" />
+          </label>
+          <label class="field">
+            <span class="mono-label">Epigraph · the story behind it (optional)</span>
+            <input id="f-theme" class="tool-input" placeholder="Returned to a familiar corner in Fremont…" />
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span class="mono-label">Date</span>
+              <input id="f-date" type="date" class="tool-input" />
+            </label>
+            <label class="field">
+              <span class="mono-label">Slug</span>
+              <input id="f-slug" class="tool-input" placeholder="a-different-warmth" />
+            </label>
+          </div>
+          <label class="field">
+            <span class="mono-label">The verse · markdown, blank line between stanzas</span>
+            <textarea id="f-body" class="tool-textarea verse-input" spellcheck="true"
+              placeholder="The name has changed, the air is new&#10;no steel, no spice, no old menu.&#10;…"></textarea>
+          </label>
+          <p class="mono-label draft-note" id="draft-note">drafts save to this browser as you type</p>
+        </div>
+
+        <aside class="desk-preview">
+          <div class="panel-label"><span>How it will read</span></div>
+          <article class="preview-sheet">
+            <h2 id="p-title">Untitled</h2>
+            <p id="p-theme" class="p-epigraph" hidden></p>
+            <div id="p-body" class="p-verse"><p class="p-empty">The page waits, patient as paper.</p></div>
+            <p class="p-sign">— Pruthvi Shetty</p>
+          </article>
+        </aside>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  import { marked } from 'marked';
+  import DOMPurify from 'dompurify';
+
+  const REPO = 'pruthvishetty/pruthvishetty.github.io';
+  const POEMS_DIR = 'src/content/poems';
+  const BRANCH = 'main';
+
+  function b64ToBytes(b64: string): Uint8Array {
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  /* unicode-safe base64 encode for the GitHub contents API */
+  function toBase64(s: string): string {
+    const bytes = new TextEncoder().encode(s);
+    let bin = '';
+    bytes.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin);
+  }
+
+  async function decryptToken(password: string): Promise<string | null> {
+    const r = await fetch('/write/token.enc.json', { cache: 'no-store' });
+    if (!r.ok) return null; // no sealed token deployed → local mode
+    const blob = await r.json();
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: b64ToBytes(blob.salt) as BufferSource, iterations: blob.iterations, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(blob.iv) as BufferSource }, key, b64ToBytes(blob.ct) as BufferSource);
+    return new TextDecoder().decode(pt);
+  }
+
+  function initDesk() {
+    const gate = document.getElementById('gate');
+    if (!gate || gate.dataset.wired) return;
+    gate.dataset.wired = '1';
+
+    const $ = (id: string) => document.getElementById(id)!;
+    const desk = $('desk');
+    const err = $('gate-err');
+    const modeNote = $('gate-mode');
+    let ghToken: string | null = null;
+    let editingSha: string | null = null; // set when updating an existing poem
+
+    /* ---------- gate ---------- */
+    async function unlock(pw: string) {
+      err.hidden = true;
+      try {
+        ghToken = await decryptToken(pw);
+        if (ghToken === null) {
+          // No token file: any password opens a local-only desk, but warn honestly.
+          modeNote.textContent = 'no sealed token found — opening in local draft mode';
+          modeNote.hidden = false;
+          await new Promise((res) => setTimeout(res, 900));
+        }
+        sessionStorage.setItem('desk.pw', pw);
+        openDesk();
+      } catch {
+        err.textContent = 'That’s not the word. The kettle waits.';
+        err.hidden = false;
+        ($('gate-pw') as HTMLInputElement).select();
+      }
+    }
+
+    $('gate-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      unlock(($('gate-pw') as HTMLInputElement).value);
+    });
+
+    // re-unlock silently within the session
+    const remembered = sessionStorage.getItem('desk.pw');
+    if (remembered) unlock(remembered);
+
+    /* ---------- desk ---------- */
+    const fTitle = $('f-title') as HTMLInputElement;
+    const fTheme = $('f-theme') as HTMLInputElement;
+    const fDate = $('f-date') as HTMLInputElement;
+    const fSlug = $('f-slug') as HTMLInputElement;
+    const fBody = $('f-body') as HTMLTextAreaElement;
+    const select = $('poem-select') as HTMLSelectElement;
+    let slugTouched = false;
+
+    function openDesk() {
+      gate!.hidden = true;
+      desk.hidden = false;
+      fDate.value = new Date().toISOString().slice(0, 10);
+      restoreDraft();
+      renderPreview();
+      if (ghToken) loadPoemList();
+      else (window as any).toast?.('Local draft mode — publishing disabled until a token is sealed.', 4200);
+    }
+
+    const slugify = (s: string) =>
+      s.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+    /* ---------- preview ---------- */
+    function renderPreview() {
+      $('p-title').textContent = fTitle.value.trim() || 'Untitled';
+      const theme = fTheme.value.trim();
+      $('p-theme').textContent = theme;
+      $('p-theme').hidden = !theme;
+      const md = fBody.value.trim();
+      $('p-body').innerHTML = md
+        ? DOMPurify.sanitize(marked.parse(md, { breaks: true }) as string)
+        : '<p class="p-empty">The page waits, patient as paper.</p>';
+      $('desk-title').textContent = editingSha
+        ? `Editing “${fTitle.value.trim() || fSlug.value}”`
+        : 'A new poem';
+    }
+
+    /* ---------- drafts ---------- */
+    const DRAFT_KEY = 'desk.draft';
+    function saveDraft() {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        title: fTitle.value, theme: fTheme.value, date: fDate.value,
+        slug: fSlug.value, body: fBody.value, sha: editingSha,
+      }));
+    }
+    function restoreDraft() {
+      try {
+        const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+        if (!d) return;
+        fTitle.value = d.title || ''; fTheme.value = d.theme || '';
+        if (d.date) fDate.value = d.date;
+        fSlug.value = d.slug || ''; fBody.value = d.body || '';
+        editingSha = d.sha || null;
+        slugTouched = !!d.slug;
+      } catch {}
+    }
+
+    let t: ReturnType<typeof setTimeout>;
+    [fTitle, fTheme, fDate, fSlug, fBody].forEach((el) =>
+      el.addEventListener('input', () => {
+        if (el === fSlug) slugTouched = true;
+        if (el === fTitle && !slugTouched && !editingSha) fSlug.value = slugify(fTitle.value);
+        clearTimeout(t);
+        t = setTimeout(() => { renderPreview(); saveDraft(); }, 200);
+      })
+    );
+
+    /* ---------- GitHub API ---------- */
+    const gh = (path: string, init: RequestInit = {}) =>
+      fetch(`https://api.github.com/repos/${REPO}/${path}`, {
+        ...init,
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${ghToken}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+          ...(init.headers || {}),
+        },
+      });
+
+    async function loadPoemList() {
+      try {
+        const r = await gh(`contents/${POEMS_DIR}?ref=${BRANCH}`);
+        if (!r.ok) return;
+        const files = (await r.json()) as Array<{ name: string }>;
+        for (const f of files.filter((f) => f.name.endsWith('.md'))) {
+          const opt = document.createElement('option');
+          opt.value = f.name;
+          opt.textContent = `✏️ ${f.name.replace(/\.md$/, '')}`;
+          select.appendChild(opt);
+        }
+      } catch {}
+    }
+
+    select.addEventListener('change', async () => {
+      if (!select.value) { // new poem
+        editingSha = null;
+        fTitle.value = fTheme.value = fSlug.value = fBody.value = '';
+        fDate.value = new Date().toISOString().slice(0, 10);
+        slugTouched = false;
+        renderPreview(); saveDraft();
+        return;
+      }
+      const r = await gh(`contents/${POEMS_DIR}/${select.value}?ref=${BRANCH}`);
+      if (!r.ok) { (window as any).toast?.('Could not load that poem.'); return; }
+      const data = await r.json();
+      editingSha = data.sha;
+      const text = new TextDecoder().decode(b64ToBytes(data.content.replace(/\n/g, '')));
+      const m = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(text);
+      const fm: Record<string, string> = {};
+      if (m) for (const line of m[1].split('\n')) {
+        const i = line.indexOf(':');
+        if (i > 0) fm[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+      }
+      fTitle.value = fm.title || select.value.replace(/\.md$/, '');
+      fTheme.value = fm.theme || '';
+      fDate.value = (fm.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+      fSlug.value = select.value.replace(/\.md$/, '');
+      slugTouched = true;
+      fBody.value = (m ? m[2] : text).trim();
+      renderPreview(); saveDraft();
+    });
+
+    /* ---------- publish ---------- */
+    $('publish').addEventListener('click', async () => {
+      const title = fTitle.value.trim();
+      const slug = fSlug.value.trim() || slugify(title);
+      const body = fBody.value.trim();
+      if (!title || !body) { (window as any).toast?.('A poem needs a title and at least one verse.'); return; }
+      if (!ghToken) {
+        (window as any).toast?.('Local mode: run `npm run encrypt-token` and deploy to enable publishing.', 4600);
+        return;
+      }
+
+      const fileText = [
+        '---',
+        `title: ${title}`,
+        `date: ${fDate.value}`,
+        'author: Pruthvi Shetty',
+        ...(fTheme.value.trim() ? [`theme: ${fTheme.value.trim()}`] : []),
+        '---',
+        '',
+        body,
+        '',
+      ].join('\n');
+
+      const btn = $('publish') as HTMLButtonElement;
+      btn.disabled = true;
+      btn.textContent = 'Publishing…';
+      try {
+        const payload: Record<string, unknown> = {
+          message: editingSha ? `Edit poem: ${title}` : `New poem: ${title}`,
+          content: toBase64(fileText),
+          branch: BRANCH,
+        };
+        if (editingSha) payload.sha = editingSha;
+        const r = await gh(`contents/${POEMS_DIR}/${slug}.md`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) {
+          const e = await r.json().catch(() => ({}));
+          throw new Error((e as any).message || `HTTP ${r.status}`);
+        }
+        const res = await r.json();
+        editingSha = res.content?.sha ?? null;
+        localStorage.removeItem(DRAFT_KEY);
+        (window as any).toast?.('Published. The site is rebuilding — give it a minute to steep. ☕', 5200);
+      } catch (e: any) {
+        (window as any).toast?.(`Publish failed: ${e.message}`, 5200);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Publish';
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', initDesk);
+  initDesk();
+</script>
+
+<style>
+  .desk-wrap { padding-block: clamp(2.5rem, 7vh, 5rem) var(--space-6); }
+
+  /* ---- gate ---- */
+  .gate { display: grid; place-items: center; min-height: 55vh; }
+  .gate-card {
+    text-align: center;
+    max-width: 26rem;
+    padding: var(--space-5);
+    background: var(--paper-raise);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 18px 44px -22px rgb(var(--shadow) / 0.4);
+  }
+  .gate-cup { color: var(--chai); display: grid; place-items: center; margin-bottom: var(--space-3); }
+  .gate-steam path { opacity: 0; animation: gsteam 3s ease-in-out infinite; }
+  .gate-steam path:nth-child(2) { animation-delay: 1.5s; }
+  @keyframes gsteam {
+    0% { opacity: 0; transform: translateY(2px); }
+    35% { opacity: 0.9; }
+    100% { opacity: 0; transform: translateY(-3px); }
+  }
+  .gate-card h1 { font-size: var(--text-lg); }
+  .gate-sub { color: var(--ink-soft); font-size: var(--text-sm); margin-block: var(--space-2) var(--space-4); }
+  #gate-form { display: flex; gap: var(--space-2); }
+  #gate-pw {
+    flex: 1;
+    font-family: var(--font-mono);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.55em 1.1em;
+  }
+  #gate-pw:focus { outline: none; border-color: var(--chai); }
+  #gate-mode { margin-top: var(--space-3); color: var(--marigold); }
+
+  /* ---- desk ---- */
+  .desk-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-5);
+  }
+  .desk-head h1 { font-size: var(--text-xl); margin-top: var(--space-2); }
+  .desk-actions { display: flex; gap: var(--space-2); align-items: center; }
+  .desk-actions .tool-select { width: auto; }
+
+  .desk-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+  }
+  @media (max-width: 880px) { .desk-grid { grid-template-columns: 1fr; } }
+
+  .field { display: block; margin-bottom: var(--space-3); }
+  .field > span { display: block; margin-bottom: 0.4rem; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .verse-input { min-height: 20rem; font-family: var(--font-body); font-size: var(--text-base); line-height: 1.8; }
+  .draft-note { opacity: 0.7; }
+
+  .desk-preview {
+    position: sticky;
+    top: 5rem;
+    background: var(--paper-raise);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+  }
+  .preview-sheet { padding: var(--space-3) var(--space-2); }
+  .preview-sheet h2 {
+    font-style: italic;
+    font-variation-settings: 'SOFT' 70, 'WONK' 1;
+    font-size: var(--text-lg);
+  }
+  .p-epigraph {
+    margin-top: var(--space-2);
+    padding-left: var(--space-2);
+    border-left: 2px solid var(--chai);
+    color: var(--ink-soft);
+    font-style: italic;
+    font-size: var(--text-sm);
+  }
+  .p-verse { margin-top: var(--space-4); line-height: 1.9; }
+  .p-verse :global(p) { margin-bottom: 1.4em; }
+  .p-verse :global(.p-empty) { color: var(--ink-faint); font-style: italic; }
+  .p-sign {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: 'SOFT' 60, 'WONK' 1;
+    color: var(--ink-soft);
+  }
+</style>

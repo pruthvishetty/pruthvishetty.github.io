@@ -1,0 +1,98 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Lost in the woods — Pruthvi Shetty" noindex={true}>
+  <section class="wrap lost">
+    <p class="eyebrow">404 · off the map</p>
+    <h1>“There’s treasure everywhere.”</h1>
+    <p class="lost-sub">
+      …just not at this particular address. The page you’re after may have been
+      transmogrified, wagon-crashed into a ravine, or never existed at all.
+    </p>
+
+    <button id="lost-wagon" class="wagon-scene" aria-label="Roll the wagon">
+      <svg viewBox="0 0 360 140" fill="none" class="scene-svg">
+        <!-- the hill -->
+        <path d="M0 120 Q 120 70 240 110 T 360 100" stroke="var(--line)" stroke-width="2" stroke-dasharray="6 7" stroke-linecap="round" />
+        <!-- the wagon -->
+        <g class="wagon">
+          <path d="M14 18 h54 l10 -8" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" />
+          <rect x="10" y="10" width="56" height="14" rx="3.5" fill="#c23b22" />
+          <circle cx="24" cy="31" r="7.5" fill="var(--ink)" /><circle cx="24" cy="31" r="2.6" fill="var(--paper)" />
+          <circle cx="54" cy="31" r="7.5" fill="var(--ink)" /><circle cx="54" cy="31" r="2.6" fill="var(--paper)" />
+        </g>
+      </svg>
+      <span class="mono-label">tap to roll the wagon anyway</span>
+    </button>
+
+    <div class="lost-paths">
+      <a class="btn btn-primary" href="/">Back to base camp</a>
+      <a class="btn" href="/writing/">Read a poem instead</a>
+      <a class="btn" href="/tools/">Fix something with a tool</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  function initLost() {
+    const scene = document.getElementById('lost-wagon');
+    if (!scene || scene.dataset.wired) return;
+    scene.dataset.wired = '1';
+    scene.addEventListener('click', () => {
+      scene.classList.remove('go');
+      void scene.offsetWidth;
+      scene.classList.add('go');
+      (window as any).toast?.('“It’s a magical world, Hobbes, ol’ buddy…” 🛷', 3000);
+    });
+  }
+  document.addEventListener('astro:page-load', initLost);
+  initLost();
+</script>
+
+<style>
+  .lost {
+    text-align: center;
+    padding-block: clamp(3rem, 10vh, 6rem) var(--space-6);
+    max-width: 46rem;
+  }
+  .lost h1 {
+    font-size: var(--text-xl);
+    font-style: italic;
+    font-variation-settings: 'SOFT' 80, 'WONK' 1;
+    margin-top: var(--space-3);
+  }
+  .lost-sub {
+    color: var(--ink-soft);
+    margin-top: var(--space-3);
+    max-width: 44ch;
+    margin-inline: auto;
+  }
+  .wagon-scene {
+    display: block;
+    width: min(360px, 86vw);
+    margin: var(--space-5) auto 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-faint);
+  }
+  .scene-svg { overflow: visible; }
+  .wagon { transform: translate(20px, 78px) rotate(4deg); }
+  .wagon-scene.go .wagon {
+    animation: ravine 1.8s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+  }
+  @keyframes ravine {
+    0% { transform: translate(20px, 78px) rotate(4deg); }
+    55% { transform: translate(210px, 80px) rotate(-4deg); }
+    100% { transform: translate(330px, 130px) rotate(38deg); opacity: 0; }
+  }
+  .wagon-scene .mono-label { display: block; margin-top: var(--space-2); }
+  .lost-paths {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: var(--space-5);
+  }
+</style>
