@@ -3,13 +3,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 /* The places — a deck of postcards from a life so far. */
 const cities = [
-  { img: 'sf.jpeg', name: 'San Francisco', note: '2023 — present · home' },
-  { img: 'byndoor.jpg', name: 'Udupi', note: 'where it all began' },
-  { img: 'bangalore.jpg', name: 'Bengaluru', note: 'engineering years · IISc' },
+  { img: 'byndoor.jpg', name: 'Udupi', note: 'ಅಜ್ಜಿ ಮನೆ · native' },
+  { img: 'bangalore.jpg', name: 'Bengaluru', note: 'hometown · where it all began' },
+  { img: 'iisc.jpeg', name: 'Bengaluru', note: 'the IISc days' },
   { img: 'btown.jpeg', name: 'Bloomington', note: '2015 – 2017 · grad school' },
   { img: 'indy.jpeg', name: 'Indianapolis', note: '2017 · the internship' },
-  { img: 'newport-beach.jpeg', name: 'Newport Beach', note: '2018 – 2019 · SAP days' },
+  { img: 'palo-alto.jpeg', name: 'Palo Alto', note: 'SAP days' },
+  { img: 'newport-beach.jpeg', name: 'Newport Beach', note: 'the SoCal stint' },
   { img: 'emeryville.jpg', name: 'Emeryville', note: '2019 – 2023 · Zaplabs' },
+  { img: 'sf.jpeg', name: 'San Francisco', note: '2023 — present · home' },
 ];
 
 const journey = [
@@ -105,7 +107,7 @@ const community = [
 ];
 ---
 
-<BaseLayout title="Pruthvi Shetty — AI engineer, chai enthusiast, occasional poet">
+<BaseLayout title="Pruthvi Shetty — Senior Staff AI Engineer">
   <!-- ===================== HERO ===================== -->
   <section class="hero wrap">
     <div class="hero-text">
@@ -114,13 +116,12 @@ const community = [
         I’m <span class="squiggle">Pruthvi<svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 7 Q 14 2, 26 6 T 50 6 T 74 6 T 98 5" /></svg></span><button id="pronounce" class="pron" title="How do you say that?" aria-label="Hear the pronunciation">🔊</button>
       </h1>
       <p class="hero-line reveal" style="--reveal-delay:.16s">
-        I teach machines to be useful — and kettles to sing.
+        I teach machines to be useful.
       </p>
       <p class="hero-sub reveal" style="--reveal-delay:.24s">
         Senior Staff AI Engineer at <a href="https://www.samsara.com/" target="_blank" rel="noopener">Samsara</a>, building
-        agents that automate everything except my meetings. I write
-        <a href="/writing/">poems over chai</a>, and make
-        <a href="/tools/">free tools</a> that never phone home.
+        agents that automate everything except my meetings. A decade of taking
+        AI/ML from zero to production at Twilio, Compass, and SAP.
       </p>
       <div class="hero-cta reveal" style="--reveal-delay:.32s">
         <a class="btn btn-primary" href="#story">The story so far ↓</a>
@@ -146,15 +147,15 @@ const community = [
   <!-- ===================== INTRO ===================== -->
   <section class="wrap intro" id="story">
     <p class="prose dropcap reveal">
-      My path runs from a small coastal town in <em>Udupi, Karnataka</em> to San Francisco — through
-      research benches at the <a href="https://www.iisc.ac.in/" target="_blank" rel="noopener">Indian Institute of Science</a>,
+      A Bengaluru boy with roots in coastal <em>Udupi</em>, now at home in San Francisco.
+      My path ran through research benches at the
+      <a href="https://www.iisc.ac.in/" target="_blank" rel="noopener">Indian Institute of Science</a>,
       a Master’s in CS at <a href="https://www.indiana.edu/" target="_blank" rel="noopener">Indiana University</a>,
       and a decade of building machine learning systems that people actually use:
       at <a href="https://www.sap.com/" target="_blank" rel="noopener">SAP Labs</a>, Zaplabs (acquired by
       <a href="https://www.compass.com/" target="_blank" rel="noopener">Compass</a>),
       <a href="https://www.twilio.com/" target="_blank" rel="noopener">Twilio</a>, and now
       <a href="https://www.samsara.com/" target="_blank" rel="noopener">Samsara</a>.
-      Along the way: hackathon trophies, supercomputers, a few thousand cups of chai.
     </p>
   </section>
 
@@ -291,7 +292,7 @@ const community = [
       </div>
       <div class="note reveal" style="--reveal-delay:.35s">
         <h3>Elsewhere</h3>
-        <p>Essays on <a href="https://medium.com/@pruthvishetty" target="_blank" rel="noopener">Medium</a>, poems and scribbles on <a href="https://pruthvishetty.substack.com/" target="_blank" rel="noopener">Shetty’s Scrapbook</a>, quick takes on <a href="https://x.com/pruthvishetty" target="_blank" rel="noopener">X</a>.</p>
+        <p>Essays on <a href="https://medium.com/@pruthvishetty" target="_blank" rel="noopener">Medium</a>, <a href="/writing/">poems</a> right here, quick takes on <a href="https://x.com/pruthvishetty" target="_blank" rel="noopener">X</a>.</p>
       </div>
     </div>
   </section>
