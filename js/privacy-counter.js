@@ -231,7 +231,13 @@ class PrivacyCounter {
         const names = {
             'jsonviz': 'JSONViz',
             'textanalyzer': 'TextAnalyzer',
-            'qrcode': 'QR Generator'
+            'qrcode': 'QR Generator',
+            'pii': 'PII Scrubber',
+            'tokenlens': 'TokenLens',
+            'lockbox': 'Lockbox',
+            'shapeshift': 'ShapeShift',
+            'pdfkit': 'PDF Pocketknife',
+            'rag': 'On-device RAG'
         };
         return names[this.toolName] || this.toolName;
     }
