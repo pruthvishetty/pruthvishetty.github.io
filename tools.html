@@ -12,8 +12,8 @@
 </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Privacy-first developer tools by Pruthvi Shetty - JSON visualizer, text analyzer, QR generator. All client-side processing.">
-  <meta name="keywords" content="Privacy tools, Developer utilities, JSON visualizer, Text analyzer, QR generator, Client-side tools, No tracking">
+  <meta name="description" content="Privacy-first developer tools by Pruthvi Shetty - JSON visualizer, text analyzer, QR generator, PII scrubber, TokenLens, Lockbox, ShapeShift, PDF tools, on-device RAG. All client-side processing.">
+  <meta name="keywords" content="Privacy tools, Developer utilities, JSON visualizer, Text analyzer, QR generator, PII scrubber, TokenLens, Lockbox, ShapeShift, PDF, RAG, Client-side tools, No tracking">
 
   <title>Developer Tools | Pruthvi Shetty</title>
   <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
@@ -435,7 +435,182 @@
                 <i class="fas fa-external-link-alt"></i>
                 Open QR Generator
               </span>
+      
+        <!-- PII Scrubber -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="pii.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-user-secret"></i>
+              </div>
+              <h3>PII Scrubber</h3>
+              <p class="text-muted">Redact secrets locally</p>
             </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Drop a log, CSV, or JSON. Highlights emails, phones, keys, and tokens, then lets you download a redacted copy. Nothing is uploaded.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> Emails, phones, SSNs, cards</li>
+                <li><i class="fas fa-check"></i> AWS, GitHub, Slack, JWT tokens</li>
+                <li><i class="fas fa-check"></i> Redact or mask (keep last 4)</li>
+                <li><i class="fas fa-check"></i> Drag-and-drop files</li>
+                <li><i class="fas fa-check"></i> Copy or download scrubbed text</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open PII Scrubber
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- TokenLens -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="tokenlens.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-coins"></i>
+              </div>
+              <h3>TokenLens</h3>
+              <p class="text-muted">Prompt tokens &amp; cost</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Paste a prompt. Get token counts for GPT, Claude, and Gemini, a rough USD cost, and a heatmap of the expensive bits. Tokenizer runs in your browser.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> GPT-4o / 4.1 via o200k tokenizer</li>
+                <li><i class="fas fa-check"></i> Claude &amp; Gemini estimates</li>
+                <li><i class="fas fa-check"></i> Input + output cost calculator</li>
+                <li><i class="fas fa-check"></i> Density heatmap</li>
+                <li><i class="fas fa-check"></i> No model APIs, ever</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open TokenLens
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Lockbox -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="lockbox.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-lock"></i>
+              </div>
+              <h3>Lockbox</h3>
+              <p class="text-muted">Encrypted notes in a URL</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Type a note, get a URL. AES-GCM in the browser; the secret lives only in the hash fragment. No server, no account.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> AES-GCM-256 via Web Crypto</li>
+                <li><i class="fas fa-check"></i> Optional passphrase (PBKDF2)</li>
+                <li><i class="fas fa-check"></i> Secret stays in the URL hash</li>
+                <li><i class="fas fa-check"></i> Copy-link sharing</li>
+                <li><i class="fas fa-check"></i> Nothing stored in plaintext</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open Lockbox
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- ShapeShift -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="shapeshift.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-exchange-alt"></i>
+              </div>
+              <h3>ShapeShift</h3>
+              <p class="text-muted">JSON → types</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                JSON in, TypeScript interfaces, Pydantic v2 models, and Zod schemas out. Nested objects, arrays, optionals, and mixed-array unions.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> TypeScript interfaces</li>
+                <li><i class="fas fa-check"></i> Pydantic v2 BaseModel</li>
+                <li><i class="fas fa-check"></i> Zod schemas</li>
+                <li><i class="fas fa-check"></i> Nested + optional inference</li>
+                <li><i class="fas fa-check"></i> Copy or download</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open ShapeShift
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- PDF Pocketknife -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="pdfkit.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-file-pdf"></i>
+              </div>
+              <h3>PDF Pocketknife</h3>
+              <p class="text-muted">Merge, split, strip</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Merge, split, rotate, reorder, and strip metadata from PDFs. Files never leave this tab.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> Merge multiple PDFs</li>
+                <li><i class="fas fa-check"></i> Split selected pages</li>
+                <li><i class="fas fa-check"></i> Rotate &amp; reorder</li>
+                <li><i class="fas fa-check"></i> Strip author/title/dates</li>
+                <li><i class="fas fa-check"></i> Download the result</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open PDF Pocketknife
+              </span>
+            </div>
+          </a>
+        </div>
+
+        <!-- On-device RAG -->
+        <div class="col-lg-4 col-md-6 mb-4">
+          <a href="rag.html" class="tool-card">
+            <div class="tool-card-header">
+              <div class="tool-icon">
+                <i class="fas fa-search"></i>
+              </div>
+              <h3>On-device RAG</h3>
+              <p class="text-muted">Ask your files, locally</p>
+            </div>
+            <div class="tool-card-body">
+              <p class="tool-description">
+                Drop PDFs or notes, then ask questions. Chunking and search run in the browser. Your documents are never uploaded.
+              </p>
+              <ul class="tool-features">
+                <li><i class="fas fa-check"></i> PDF / TXT / MD, local extract</li>
+                <li><i class="fas fa-check"></i> BM25 search that always works</li>
+                <li><i class="fas fa-check"></i> Optional on-device embeddings</li>
+                <li><i class="fas fa-check"></i> Source snippets, not a cloud LLM</li>
+                <li><i class="fas fa-check"></i> Sample doc to try immediately</li>
+              </ul>
+              <span class="tool-cta">
+                <i class="fas fa-external-link-alt"></i>
+                Open On-device RAG
+              </span>
+            </div>
+          </a>
+        </div>
+
+      </div>
           </a>
         </div>
       </div>
@@ -486,7 +661,7 @@
     <div class="container">
       <div class="stats-grid">
         <div class="stat-item">
-          <span class="stat-number">3</span>
+          <span class="stat-number">9</span>
           <div class="stat-label">Privacy-First Tools</div>
         </div>
         <div class="stat-item">
@@ -508,7 +683,7 @@
   <!-- Footer -->
   <footer style="background: #2c3e50; color: white; padding: 2rem 0; text-align: center;">
     <div class="container">
-      <p>&copy; 2025 Pruthvi Shetty. Built with privacy in mind.</p>
+      <p>&copy; 2026 Pruthvi Shetty. Built with privacy in mind.</p>
       <p style="margin-top: 0.5rem; opacity: 0.8;">
         <a href="index.html" style="color: #667eea; text-decoration: none;">← Back to Portfolio</a>
       </p>
@@ -528,7 +703,7 @@
     // Add usage stats to tools landing page
     document.addEventListener('DOMContentLoaded', function() {
       // Get combined usage stats from all tools
-      const tools = ['jsonviz', 'textanalyzer', 'qrcode'];
+      const tools = ['jsonviz', 'textanalyzer', 'qrcode', 'pii', 'tokenlens', 'lockbox', 'shapeshift', 'pdfkit', 'rag'];
       let totalUsage = 0;
       let toolsUsed = 0;
       
