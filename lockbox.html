@@ -1,1 +1,684 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Lockbox — encrypt a short note in the browser and share it as a URL hash. AES-GCM 256. Nothing is posted.">
+    <title>Lockbox</title>
+    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --accent-color: #007bff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #404040;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+            --accent-color: #4dabf7;
+            --success-color: #51cf66;
+            --error-color: #ff6b6b;
+            --warning-color: #ffd43b;
+            --shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .logo-wrap { display: flex; align-items: center; gap: 0.85rem; }
+        .back-to-tools {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+            padding: 0.35rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            transition: var(--transition);
+        }
+        .back-to-tools:hover { color: var(--accent-color); border-color: var(--accent-color); }
+        .logo {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 1.5rem; font-weight: 600; color: var(--accent-color);
+        }
+        .logo i { font-size: 1.8rem; }
+        .header-controls { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        .btn {
+            padding: 0.5rem 1rem; border: none; border-radius: 6px;
+            background-color: var(--accent-color); color: white; cursor: pointer;
+            font-size: 0.9rem; font-weight: 500; transition: var(--transition);
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            font-family: 'Open Sans', sans-serif;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+        .btn-secondary { background-color: var(--bg-tertiary); color: var(--text-primary); }
+        .btn-danger { background-color: var(--error-color); }
+        .theme-toggle {
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            color: var(--text-primary); width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: var(--transition);
+        }
+        .theme-toggle:hover { background-color: var(--accent-color); color: white; }
+        .wrap { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 2.5rem; }
+        .warn {
+            background: rgba(255, 193, 7, 0.18);
+            border: 1px solid var(--warning-color);
+            color: var(--text-primary);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            display: flex; gap: 0.65rem; align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        [data-theme="dark"] .warn { background: rgba(255, 212, 59, 0.12); }
+        .warn i { color: #b58100; margin-top: 0.15rem; }
+        [data-theme="dark"] .warn i { color: var(--warning-color); }
+        .panel-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+        }
+        .panel-header {
+            padding: 0.9rem 1.25rem;
+            background-color: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600; font-size: 0.85rem; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--text-secondary);
+            display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+        }
+        .card-body { padding: 1.1rem 1.2rem 1.25rem; }
+        label.field {
+            display: block; font-size: 0.8rem; font-weight: 600;
+            color: var(--text-secondary); margin-bottom: 0.35rem; letter-spacing: 0.3px;
+        }
+        input[type="text"], input[type="password"], textarea {
+            width: 100%; border: 1px solid var(--border-color); border-radius: 8px;
+            background: var(--bg-primary); color: var(--text-primary);
+            padding: 0.7rem 0.85rem; font-size: 0.95rem;
+            font-family: 'Open Sans', sans-serif; outline: none;
+        }
+        textarea {
+            min-height: 220px; resize: vertical;
+            font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.6;
+        }
+        input:focus, textarea:focus { border-color: var(--accent-color); }
+        .hint { font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.35rem; line-height: 1.45; }
+        .row { margin-bottom: 0.95rem; }
+        .pass-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; }
+        .status-bar {
+            padding: 0.55rem 1.25rem;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem; color: var(--text-secondary);
+            display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
+        }
+        .status-ok { color: var(--success-color); }
+        .status-err { color: var(--error-color); }
+        .url-box {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+            word-break: break-all; background: var(--bg-primary);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 0.8rem; line-height: 1.5; max-height: 140px; overflow: auto;
+        }
+        .note-title {
+            font-size: 1.15rem; font-weight: 600; margin-bottom: 0.75rem;
+        }
+        .note-body {
+            white-space: pre-wrap; word-break: break-word;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.92rem; line-height: 1.65;
+            background: var(--bg-primary); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; min-height: 140px;
+        }
+        .hidden { display: none !important; }
+        .privacy-note {
+            font-size: 0.78rem; color: var(--text-secondary);
+            display: flex; gap: 0.45rem; align-items: flex-start; line-height: 1.45;
+        }
+        .privacy-note i { color: var(--success-color); margin-top: 0.15rem; }
+        .pill {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 500;
+            padding: 0.2rem 0.55rem; border-radius: 999px; background: var(--bg-primary);
+            color: var(--text-secondary); border: 1px solid var(--border-color);
+            text-transform: none; letter-spacing: 0;
+        }
+        @media (max-width: 768px) {
+            .header { padding: 0.8rem 1rem; }
+            .logo { font-size: 1.2rem; }
+            .pass-row { grid-template-columns: 1fr; }
+            textarea { font-size: 16px; min-height: 180px; }
+            .btn { padding: 0.45rem 0.8rem; font-size: 0.82rem; }
+            .btn-label-wide { display: none; }
+            .wrap { padding: 1rem 0.85rem 2rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="header">
+        <div class="logo-wrap">
+            <a class="back-to-tools" href="tools.html">← Tools</a>
+            <div class="logo"><i class="fas fa-lock"></i> Lockbox</div>
+        </div>
+        <div class="header-controls">
+            <button class="btn btn-secondary" type="button" onclick="newNote()">
+                <i class="fas fa-plus"></i> <span class="btn-label-wide">New note</span>
+            </button>
+            <button class="theme-toggle" type="button" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </div>
+    <div class="wrap">
+        <div class="warn">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                Anyone with the link can read an unlocked note. Anyone with the link <strong>and</strong> the passphrase can read a locked note.
+                The secret lives only in the URL hash (after <span style="font-family:'JetBrains Mono',monospace">#</span>) and is not sent to the server. Do not paste the URL into chat logs, tickets, or analytics.
+            </div>
+        </div>
+
+        <div id="view-create" class="panel-card">
+            <div class="panel-header">
+                <span><i class="fas fa-pen"></i> Compose</span>
+                <span class="pill">AES-GCM 256</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <label class="field" for="noteTitle">Title (optional)</label>
+                    <input type="text" id="noteTitle" maxlength="120" placeholder="e.g. Wi-Fi for the studio" autocomplete="off">
+                </div>
+                <div class="row">
+                    <label class="field" for="noteBody">Note</label>
+                    <textarea id="noteBody" placeholder="Write the note here. It is encrypted in this browser before the link is built." oninput="updateCounts()"></textarea>
+                </div>
+                <div class="row pass-row">
+                    <div>
+                        <label class="field" for="pass1">Passphrase (optional)</label>
+                        <input type="password" id="pass1" placeholder="Leave empty to put the key in the link" autocomplete="new-password">
+                    </div>
+                    <div>
+                        <label class="field" for="pass2">Confirm passphrase</label>
+                        <input type="password" id="pass2" placeholder="Required only if you set a passphrase" autocomplete="new-password">
+                    </div>
+                </div>
+                <p class="hint">Empty passphrase → a random 256-bit key is embedded in the hash. With a passphrase → PBKDF2-SHA256 (210,000 iterations) + random 16-byte salt; the key is never put in the URL.</p>
+                <div class="actions">
+                    <button class="btn" type="button" id="btnLock" onclick="lockNote()">
+                        <i class="fas fa-link"></i> Lock &amp; create link
+                    </button>
+                    <button class="btn btn-secondary" type="button" onclick="clearCompose()">
+                        <i class="fas fa-eraser"></i> Clear
+                    </button>
+                </div>
+            </div>
+            <div class="status-bar">
+                <span id="createStatus">Ready</span>
+                <span id="charCount">0 characters</span>
+            </div>
+        </div>
+
+        <div id="view-link" class="panel-card hidden">
+            <div class="panel-header">
+                <span><i class="fas fa-share-nodes"></i> Shareable link</span>
+                <span class="pill" id="linkMode"></span>
+            </div>
+            <div class="card-body">
+                <div class="url-box" id="shareUrl"></div>
+                <div class="actions" style="margin-top:0.85rem;">
+                    <button class="btn" type="button" onclick="copyShareUrl()">
+                        <i class="fas fa-copy"></i> Copy link
+                    </button>
+                    <button class="btn btn-secondary" type="button" onclick="forgetLocal()">
+                        <i class="fas fa-eye-slash"></i> Forget note locally
+                    </button>
+                </div>
+                <p class="hint" id="linkHint"></p>
+            </div>
+        </div>
+
+        <div id="view-unlock" class="panel-card hidden">
+            <div class="panel-header">
+                <span><i class="fas fa-key"></i> Passphrase required</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <label class="field" for="unlockPass">Passphrase</label>
+                    <input type="password" id="unlockPass" placeholder="Enter the passphrase for this note" autocomplete="current-password">
+                </div>
+                <div class="actions">
+                    <button class="btn" type="button" onclick="unlockNote()">
+                        <i class="fas fa-unlock"></i> Unlock
+                    </button>
+                </div>
+                <p class="hint" id="unlockStatus">This note was locked with a passphrase. It never left this browser as plaintext.</p>
+            </div>
+        </div>
+
+        <div id="view-read" class="panel-card hidden">
+            <div class="panel-header">
+                <span><i class="fas fa-envelope-open-text"></i> Decrypted note</span>
+                <span class="pill" id="readMeta"></span>
+            </div>
+            <div class="card-body">
+                <div class="note-title" id="readTitle"></div>
+                <div class="note-body" id="readBody"></div>
+                <div class="actions" style="margin-top:0.85rem;">
+                    <button class="btn btn-secondary" type="button" onclick="copyPlain()">
+                        <i class="fas fa-copy"></i> Copy note
+                    </button>
+                </div>
+            </div>
+            <div class="status-bar">
+                <span id="readStatus">Decrypted in-browser</span>
+                <span id="readChars"></span>
+            </div>
+        </div>
+
+        <p class="privacy-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>100% client-side Web Crypto. The note is not stored in localStorage. Requires a secure context (HTTPS or localhost).</span>
+        </p>
+    </div>
+<script>
+const LB_VERSION = 1;
+const LB_FLAG_PASS = 0x01;
+const LB_IV_LEN = 12;
+const LB_SALT_LEN = 16;
+const LB_KEY_LEN = 32;
+const LB_ITERS = 210000;
+const te = new TextEncoder();
+const td = new TextDecoder();
+
+let currentTheme = 'light';
+let lastPlain = '';
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.body.setAttribute('data-theme', currentTheme);
+    const icon = document.querySelector('.theme-toggle i');
+    icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    localStorage.setItem('lockbox-theme', currentTheme);
+}
+
+function loadTheme() {
+    const saved = localStorage.getItem('lockbox-theme') || 'light';
+    currentTheme = saved;
+    document.body.setAttribute('data-theme', currentTheme);
+    const icon = document.querySelector('.theme-toggle i');
+    if (icon) icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function setStatus(id, msg, kind) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = kind === 'ok' ? 'status-ok' : (kind === 'err' ? 'status-err' : '');
+}
+
+function show(id, on) {
+    document.getElementById(id).classList.toggle('hidden', !on);
+}
+
+function bytesToB64url(bytes) {
+    let bin = '';
+    const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function b64urlToBytes(s) {
+    s = String(s).replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    const bin = atob(s);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+}
+
+function concatBytes(parts) {
+    let n = 0;
+    for (const p of parts) n += p.length;
+    const out = new Uint8Array(n);
+    let o = 0;
+    for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
+}
+
+function u32be(n) {
+    const b = new Uint8Array(4);
+    b[0] = (n >>> 24) & 255;
+    b[1] = (n >>> 16) & 255;
+    b[2] = (n >>> 8) & 255;
+    b[3] = n & 255;
+    return b;
+}
+
+function readU32be(b, i) {
+    return ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
+}
+
+function hasSubtle() {
+    return !!(window.crypto && window.crypto.subtle);
+}
+
+async function importAesKey(raw, extractable) {
+    return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, !!extractable, ['encrypt', 'decrypt']);
+}
+
+async function deriveKeyFromPass(pass, salt, iters) {
+    const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: salt, iterations: iters, hash: 'SHA-256' },
+        base,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+function packPayload(opts) {
+    const head = new Uint8Array([LB_VERSION, opts.pass ? LB_FLAG_PASS : 0]);
+    if (opts.pass) {
+        return concatBytes([head, opts.iv, opts.salt, u32be(opts.iters), opts.ct]);
+    }
+    return concatBytes([head, opts.iv, opts.key, opts.ct]);
+}
+
+function unpackPayload(bytes) {
+    if (!bytes || bytes.length < 14) throw new Error('Payload too short');
+    const version = bytes[0];
+    const flags = bytes[1];
+    if (version !== LB_VERSION) throw new Error('Unsupported Lockbox version ' + version);
+    const iv = bytes.slice(2, 2 + LB_IV_LEN);
+    let o = 2 + LB_IV_LEN;
+    const pass = !!(flags & LB_FLAG_PASS);
+    if (pass) {
+        if (bytes.length < o + LB_SALT_LEN + 4 + 16) throw new Error('Truncated passphrase payload');
+        const salt = bytes.slice(o, o + LB_SALT_LEN); o += LB_SALT_LEN;
+        const iters = readU32be(bytes, o); o += 4;
+        if (iters < 100000) throw new Error('Iteration count too low');
+        return { pass: true, iv: iv, salt: salt, iters: iters, ct: bytes.slice(o) };
+    }
+    if (bytes.length < o + LB_KEY_LEN + 16) throw new Error('Truncated key payload');
+    const key = bytes.slice(o, o + LB_KEY_LEN); o += LB_KEY_LEN;
+    return { pass: false, iv: iv, key: key, ct: bytes.slice(o) };
+}
+
+function parseHash() {
+    const raw = (location.hash || '').replace(/^#/, '');
+    if (!raw) return null;
+    if (!raw.startsWith('v1.')) throw new Error('Not a Lockbox v1 link');
+    return unpackPayload(b64urlToBytes(raw.slice(3)));
+}
+
+function shareUrlFromPayload(b64) {
+    const base = location.href.split('#')[0];
+    return base + '#v1.' + b64;
+}
+
+function updateCounts() {
+    const n = document.getElementById('noteBody').value.length;
+    document.getElementById('charCount').textContent = n.toLocaleString() + ' characters';
+}
+
+function clearCompose() {
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteBody').value = '';
+    document.getElementById('pass1').value = '';
+    document.getElementById('pass2').value = '';
+    updateCounts();
+    setStatus('createStatus', 'Cleared', '');
+}
+
+async function lockNote() {
+    if (!hasSubtle()) {
+        setStatus('createStatus', 'Needs HTTPS (Web Crypto unavailable).', 'err');
+        return;
+    }
+    const title = document.getElementById('noteTitle').value;
+    const body = document.getElementById('noteBody').value;
+    const p1 = document.getElementById('pass1').value;
+    const p2 = document.getElementById('pass2').value;
+    if (!body.length && !title.length) {
+        setStatus('createStatus', 'Write a note first.', 'err');
+        return;
+    }
+    if (p1.length && p1 !== p2) {
+        setStatus('createStatus', 'Passphrases do not match.', 'err');
+        return;
+    }
+    if (body.length > 20000) {
+        setStatus('createStatus', 'Note is large; the URL may not paste everywhere (browsers still accept it).', '');
+    }
+    const btn = document.getElementById('btnLock');
+    btn.disabled = true;
+    try {
+        const plain = te.encode(JSON.stringify({ t: title, b: body }));
+        const iv = crypto.getRandomValues(new Uint8Array(LB_IV_LEN));
+        let key, rawKey = null, salt = null;
+        if (p1.length) {
+            salt = crypto.getRandomValues(new Uint8Array(LB_SALT_LEN));
+            key = await deriveKeyFromPass(p1, salt, LB_ITERS);
+        } else {
+            rawKey = crypto.getRandomValues(new Uint8Array(LB_KEY_LEN));
+            key = await importAesKey(rawKey, false);
+        }
+        const ctBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, plain);
+        const ct = new Uint8Array(ctBuf);
+        const packed = packPayload({ pass: !!p1.length, iv: iv, salt: salt, iters: LB_ITERS, key: rawKey, ct: ct });
+        const b64 = bytesToB64url(packed);
+        const url = shareUrlFromPayload(b64);
+        history.replaceState(null, '', url);
+        document.getElementById('shareUrl').textContent = url;
+        document.getElementById('linkMode').textContent = p1.length ? 'passphrase' : 'key-in-hash';
+        document.getElementById('linkHint').textContent = p1.length
+            ? 'Share the link AND the passphrase out of band. The key is not in the URL.'
+            : 'The 256-bit key is inside the hash. Anyone with this URL can decrypt.';
+        show('view-link', true);
+        setStatus('createStatus', 'Encrypted. Link is in the hash — copy it below.', 'ok');
+    } catch (err) {
+        setStatus('createStatus', 'Encrypt failed: ' + (err && err.message ? err.message : String(err)), 'err');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function copyShareUrl() {
+    const url = document.getElementById('shareUrl').textContent;
+    if (!url) { setStatus('createStatus', 'No link yet.', 'err'); return; }
+    try {
+        await navigator.clipboard.writeText(url);
+        setStatus('createStatus', 'Link copied.', 'ok');
+    } catch (e) {
+        setStatus('createStatus', 'Copy failed — select the URL box and copy.', 'err');
+    }
+}
+
+function forgetLocal() {
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteBody').value = '';
+    document.getElementById('pass1').value = '';
+    document.getElementById('pass2').value = '';
+    lastPlain = '';
+    updateCounts();
+    setStatus('createStatus', 'Local plaintext cleared. The hash (and link) are unchanged.', 'ok');
+}
+
+function newNote() {
+    lastPlain = '';
+    history.replaceState(null, '', location.href.split('#')[0]);
+    show('view-create', true);
+    show('view-link', false);
+    show('view-unlock', false);
+    show('view-read', false);
+    clearCompose();
+    setStatus('createStatus', 'New note', '');
+}
+
+async function decryptWithKey(payload, key) {
+    const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: payload.iv }, key, payload.ct);
+    const obj = JSON.parse(td.decode(buf));
+    return { title: obj && obj.t ? String(obj.t) : '', body: obj && obj.b ? String(obj.b) : '' };
+}
+
+function renderRead(note, meta) {
+    lastPlain = note.body;
+    document.getElementById('readTitle').textContent = note.title || '(untitled)';
+    document.getElementById('readBody').textContent = note.body;
+    document.getElementById('readMeta').textContent = meta;
+    document.getElementById('readChars').textContent = note.body.length.toLocaleString() + ' characters';
+    setStatus('readStatus', 'Decrypted in-browser. Plaintext is not saved.', 'ok');
+    show('view-read', true);
+    show('view-create', false);
+    show('view-unlock', false);
+}
+
+async function openFromHash() {
+    let payload;
+    try {
+        payload = parseHash();
+    } catch (err) {
+        show('view-create', true);
+        setStatus('createStatus', 'Could not read hash: ' + (err && err.message ? err.message : String(err)), 'err');
+        return;
+    }
+    if (!payload) {
+        show('view-create', true);
+        return;
+    }
+    if (!hasSubtle()) {
+        show('view-create', true);
+        setStatus('createStatus', 'Needs HTTPS (Web Crypto unavailable).', 'err');
+        return;
+    }
+    if (payload.pass) {
+        show('view-create', false);
+        show('view-link', false);
+        show('view-read', false);
+        show('view-unlock', true);
+        window.__lbPayload = payload;
+        setStatus('unlockStatus', 'Passphrase required. PBKDF2-SHA256, ' + payload.iters.toLocaleString() + ' iterations.', '');
+        return;
+    }
+    try {
+        const key = await importAesKey(payload.key, false);
+        const note = await decryptWithKey(payload, key);
+        renderRead(note, 'key-in-hash');
+        document.getElementById('shareUrl').textContent = location.href;
+        document.getElementById('linkMode').textContent = 'key-in-hash';
+        document.getElementById('linkHint').textContent = 'Anyone with this URL can decrypt.';
+        show('view-link', true);
+    } catch (err) {
+        show('view-create', true);
+        setStatus('createStatus', 'Decrypt failed. The link may be truncated or corrupted.', 'err');
+    }
+}
+
+async function unlockNote() {
+    const payload = window.__lbPayload;
+    if (!payload) {
+        setStatus('unlockStatus', 'Nothing to unlock.', 'err');
+        return;
+    }
+    const pass = document.getElementById('unlockPass').value;
+    if (!pass.length) {
+        setStatus('unlockStatus', 'Enter the passphrase.', 'err');
+        return;
+    }
+    setStatus('unlockStatus', 'Deriving key…', '');
+    try {
+        const key = await deriveKeyFromPass(pass, payload.salt, payload.iters);
+        const note = await decryptWithKey(payload, key);
+        document.getElementById('unlockPass').value = '';
+        renderRead(note, 'passphrase');
+        document.getElementById('shareUrl').textContent = location.href;
+        document.getElementById('linkMode').textContent = 'passphrase';
+        document.getElementById('linkHint').textContent = 'Share the link AND the passphrase out of band.';
+        show('view-link', true);
+    } catch (err) {
+        setStatus('unlockStatus', 'Wrong passphrase or corrupted payload.', 'err');
+    }
+}
+
+async function copyPlain() {
+    try {
+        await navigator.clipboard.writeText(lastPlain || document.getElementById('readBody').textContent);
+        setStatus('readStatus', 'Note copied.', 'ok');
+    } catch (e) {
+        setStatus('readStatus', 'Copy failed — select the note and copy.', 'err');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadTheme();
+    updateCounts();
+    const up = document.getElementById('unlockPass');
+    if (up) up.addEventListener('keydown', function (e) { if (e.key === 'Enter') unlockNote(); });
+    openFromHash();
+});
+
+window.addEventListener('hashchange', function () {
+    openFromHash();
+});
+
+</script>
+<script src="js/privacy-counter.js"></script>
+<script data-goatcounter="https://pruthvishetty.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const headerControls = document.querySelector(".header-controls");
+    if (headerControls) {
+        const themeToggle = headerControls.querySelector(".theme-toggle");
+        if (themeToggle) {
+            themeToggle.insertAdjacentHTML("beforebegin", '<div id="lockbox-counter"></div>');
+        } else {
+            headerControls.insertAdjacentHTML("beforeend", '<div id="lockbox-counter"></div>');
+        }
+    }
+    const counter = new PrivacyCounter("lockbox", "lockbox-counter");
+});
+
+</script>
+</body>
+</html>
