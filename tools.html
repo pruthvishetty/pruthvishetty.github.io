@@ -85,6 +85,11 @@
       text-decoration: none;
       color: inherit;
       display: block;
+      max-width: 100%;
+    }
+
+    .row > [class*=col-] {
+      min-width: 0;
     }
 
     .tool-card:hover {
@@ -326,6 +331,10 @@
         grid-template-columns: 1fr;
         gap: 1.5rem;
       }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
     }
   </style>
 </head>
@@ -435,7 +444,10 @@
                 <i class="fas fa-external-link-alt"></i>
                 Open QR Generator
               </span>
-      
+            </div>
+          </a>
+        </div>
+
         <!-- PII Scrubber -->
         <div class="col-lg-4 col-md-6 mb-4">
           <a href="pii.html" class="tool-card">
@@ -610,9 +622,6 @@
           </a>
         </div>
 
-      </div>
-          </a>
-        </div>
       </div>
     </div>
   </section>
