@@ -2,8 +2,8 @@
 .header { flex-wrap: wrap !important; }
 .header-controls { flex-wrap: wrap !important; }
 @media (max-width: 768px) {
-  body { overflow-x: hidden; }
-  .header-controls { width: 100%; }
+  body { overflow-x: hidden !important; }
+  .header-controls { width: 100% !important; }
   .header-controls .btn,
-  .header-controls .utility-btn { padding: 0.35rem 0.65rem; font-size: 0.8rem; }
+  .header-controls .utility-btn { padding: 0.35rem 0.65rem !important; font-size: 0.8rem !important; }
 }
