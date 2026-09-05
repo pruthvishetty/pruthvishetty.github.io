@@ -1,7 +1,17 @@
-/** Shared tools page chrome: theme sync + muted © footer */
+/** Shared tools page chrome: theme sync + muted © footer + mobile header CSS */
 (function () {
   var FOOTER_TEXT = '\u00A9 2026 Pruthvi Shetty';
   var THEME_KEY = 'tools-theme';
+
+  function ensureMobileHeaderCss() {
+    try {
+      if (document.querySelector('link[href*="tool-header-mobile"]')) return;
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'css/tool-header-mobile.css';
+      document.head.appendChild(l);
+    } catch (e) {}
+  }
 
   function ensureFooter() {
     if (document.querySelector('.tools-footer')) return;
@@ -62,12 +72,13 @@
   }
 
   function init(legacyThemeKey) {
+    ensureMobileHeaderCss();
     ensureBackLink();
     ensureFooter();
     syncThemeKey(legacyThemeKey || null);
   }
 
-  window.ToolsChrome = { init: init, ensureFooter: ensureFooter, ensureBackLink: ensureBackLink, syncThemeKey: syncThemeKey };
+  window.ToolsChrome = { init: init, ensureFooter: ensureFooter, ensureBackLink: ensureBackLink, syncThemeKey: syncThemeKey, ensureMobileHeaderCss: ensureMobileHeaderCss };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
