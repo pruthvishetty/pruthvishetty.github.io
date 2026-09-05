@@ -192,6 +192,16 @@
             .btn-label-wide { display: none; }
             .wrap { padding: 1rem 0.85rem 2rem; }
         }
+        .tools-footer {
+            flex-shrink: 0;
+            text-align: center;
+            padding: 0.55rem 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.75;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
     </style>
 </head>
 <body data-theme="light">
@@ -217,7 +227,6 @@
                 The secret lives only in the URL hash (after <span style="font-family:'JetBrains Mono',monospace">#</span>) and is not sent to the server. Do not paste the URL into chat logs, tickets, or analytics.
             </div>
         </div>
-
         <div id="view-create" class="panel-card">
             <div class="panel-header">
                 <span><i class="fas fa-pen"></i> Compose</span>
@@ -257,7 +266,6 @@
                 <span id="charCount">0 characters</span>
             </div>
         </div>
-
         <div id="view-link" class="panel-card hidden">
             <div class="panel-header">
                 <span><i class="fas fa-share-nodes"></i> Shareable link</span>
@@ -276,7 +284,6 @@
                 <p class="hint" id="linkHint"></p>
             </div>
         </div>
-
         <div id="view-unlock" class="panel-card hidden">
             <div class="panel-header">
                 <span><i class="fas fa-key"></i> Passphrase required</span>
@@ -294,7 +301,6 @@
                 <p class="hint" id="unlockStatus">This note was locked with a passphrase. It never left this browser as plaintext.</p>
             </div>
         </div>
-
         <div id="view-read" class="panel-card hidden">
             <div class="panel-header">
                 <span><i class="fas fa-envelope-open-text"></i> Decrypted note</span>
@@ -314,7 +320,6 @@
                 <span id="readChars"></span>
             </div>
         </div>
-
         <p class="privacy-note">
             <i class="fas fa-shield-alt"></i>
             <span>100% client-side Web Crypto. The note is not stored in localStorage. Requires a secure context (HTTPS or localhost).</span>
@@ -329,44 +334,38 @@ const LB_KEY_LEN = 32;
 const LB_ITERS = 210000;
 const te = new TextEncoder();
 const td = new TextDecoder();
-
 let currentTheme = 'light';
 let lastPlain = '';
-
 function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     document.body.setAttribute('data-theme', currentTheme);
     const icon = document.querySelector('.theme-toggle i');
     icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    localStorage.setItem('tools-theme', currentTheme);
     localStorage.setItem('lockbox-theme', currentTheme);
 }
-
 function loadTheme() {
-    const saved = localStorage.getItem('lockbox-theme') || 'light';
+    const saved = localStorage.getItem('tools-theme') || localStorage.getItem('lockbox-theme') || 'light';
     currentTheme = saved;
     document.body.setAttribute('data-theme', currentTheme);
     const icon = document.querySelector('.theme-toggle i');
     if (icon) icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
 }
-
 function setStatus(id, msg, kind) {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = msg;
     el.className = kind === 'ok' ? 'status-ok' : (kind === 'err' ? 'status-err' : '');
 }
-
 function show(id, on) {
     document.getElementById(id).classList.toggle('hidden', !on);
 }
-
 function bytesToB64url(bytes) {
     let bin = '';
     const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
-
 function b64urlToBytes(s) {
     s = String(s).replace(/-/g, '+').replace(/_/g, '/');
     while (s.length % 4) s += '=';
@@ -375,7 +374,6 @@ function b64urlToBytes(s) {
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
 }
-
 function concatBytes(parts) {
     let n = 0;
     for (const p of parts) n += p.length;
@@ -384,7 +382,6 @@ function concatBytes(parts) {
     for (const p of parts) { out.set(p, o); o += p.length; }
     return out;
 }
-
 function u32be(n) {
     const b = new Uint8Array(4);
     b[0] = (n >>> 24) & 255;
@@ -393,19 +390,15 @@ function u32be(n) {
     b[3] = n & 255;
     return b;
 }
-
 function readU32be(b, i) {
     return ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
 }
-
 function hasSubtle() {
     return !!(window.crypto && window.crypto.subtle);
 }
-
 async function importAesKey(raw, extractable) {
     return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, !!extractable, ['encrypt', 'decrypt']);
 }
-
 async function deriveKeyFromPass(pass, salt, iters) {
     const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
     return crypto.subtle.deriveKey(
@@ -416,7 +409,6 @@ async function deriveKeyFromPass(pass, salt, iters) {
         ['encrypt', 'decrypt']
     );
 }
-
 function packPayload(opts) {
     const head = new Uint8Array([LB_VERSION, opts.pass ? LB_FLAG_PASS : 0]);
     if (opts.pass) {
@@ -424,7 +416,6 @@ function packPayload(opts) {
     }
     return concatBytes([head, opts.iv, opts.key, opts.ct]);
 }
-
 function unpackPayload(bytes) {
     if (!bytes || bytes.length < 14) throw new Error('Payload too short');
     const version = bytes[0];
@@ -444,24 +435,20 @@ function unpackPayload(bytes) {
     const key = bytes.slice(o, o + LB_KEY_LEN); o += LB_KEY_LEN;
     return { pass: false, iv: iv, key: key, ct: bytes.slice(o) };
 }
-
 function parseHash() {
     const raw = (location.hash || '').replace(/^#/, '');
     if (!raw) return null;
     if (!raw.startsWith('v1.')) throw new Error('Not a Lockbox v1 link');
     return unpackPayload(b64urlToBytes(raw.slice(3)));
 }
-
 function shareUrlFromPayload(b64) {
     const base = location.href.split('#')[0];
     return base + '#v1.' + b64;
 }
-
 function updateCounts() {
     const n = document.getElementById('noteBody').value.length;
     document.getElementById('charCount').textContent = n.toLocaleString() + ' characters';
 }
-
 function clearCompose() {
     document.getElementById('noteTitle').value = '';
     document.getElementById('noteBody').value = '';
@@ -470,7 +457,6 @@ function clearCompose() {
     updateCounts();
     setStatus('createStatus', 'Cleared', '');
 }
-
 async function lockNote() {
     if (!hasSubtle()) {
         setStatus('createStatus', 'Needs HTTPS (Web Crypto unavailable).', 'err');
@@ -523,7 +509,6 @@ async function lockNote() {
         btn.disabled = false;
     }
 }
-
 async function copyShareUrl() {
     const url = document.getElementById('shareUrl').textContent;
     if (!url) { setStatus('createStatus', 'No link yet.', 'err'); return; }
@@ -534,7 +519,6 @@ async function copyShareUrl() {
         setStatus('createStatus', 'Copy failed — select the URL box and copy.', 'err');
     }
 }
-
 function forgetLocal() {
     document.getElementById('noteTitle').value = '';
     document.getElementById('noteBody').value = '';
@@ -544,7 +528,6 @@ function forgetLocal() {
     updateCounts();
     setStatus('createStatus', 'Local plaintext cleared. The hash (and link) are unchanged.', 'ok');
 }
-
 function newNote() {
     lastPlain = '';
     history.replaceState(null, '', location.href.split('#')[0]);
@@ -555,13 +538,11 @@ function newNote() {
     clearCompose();
     setStatus('createStatus', 'New note', '');
 }
-
 async function decryptWithKey(payload, key) {
     const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: payload.iv }, key, payload.ct);
     const obj = JSON.parse(td.decode(buf));
     return { title: obj && obj.t ? String(obj.t) : '', body: obj && obj.b ? String(obj.b) : '' };
 }
-
 function renderRead(note, meta) {
     lastPlain = note.body;
     document.getElementById('readTitle').textContent = note.title || '(untitled)';
@@ -573,7 +554,6 @@ function renderRead(note, meta) {
     show('view-create', false);
     show('view-unlock', false);
 }
-
 async function openFromHash() {
     let payload;
     try {
@@ -614,7 +594,6 @@ async function openFromHash() {
         setStatus('createStatus', 'Decrypt failed. The link may be truncated or corrupted.', 'err');
     }
 }
-
 async function unlockNote() {
     const payload = window.__lbPayload;
     if (!payload) {
@@ -640,7 +619,6 @@ async function unlockNote() {
         setStatus('unlockStatus', 'Wrong passphrase or corrupted payload.', 'err');
     }
 }
-
 async function copyPlain() {
     try {
         await navigator.clipboard.writeText(lastPlain || document.getElementById('readBody').textContent);
@@ -649,7 +627,6 @@ async function copyPlain() {
         setStatus('readStatus', 'Copy failed — select the note and copy.', 'err');
     }
 }
-
 document.addEventListener('DOMContentLoaded', function () {
     loadTheme();
     updateCounts();
@@ -657,12 +634,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (up) up.addEventListener('keydown', function (e) { if (e.key === 'Enter') unlockNote(); });
     openFromHash();
 });
-
 window.addEventListener('hashchange', function () {
     openFromHash();
 });
-
 </script>
+    <footer class="tools-footer">© 2026 Pruthvi Shetty</footer>
 <script src="js/privacy-counter.js"></script>
 <script data-goatcounter="https://pruthvishetty.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <script>
@@ -678,7 +654,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     const counter = new PrivacyCounter("lockbox", "lockbox-counter");
 });
-
 </script>
 </body>
 </html>
