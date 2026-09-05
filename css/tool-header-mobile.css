@@ -1,9 +1,57 @@
-/* tool header mobile wrap / overflow */
-.header { flex-wrap: wrap !important; }
-.header-controls { flex-wrap: wrap !important; }
+/* Shared tool header: prevent mobile horizontal overflow */
+.header {
+  flex-wrap: wrap !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+.header-controls {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+.theme-toggle { flex-shrink: 0 !important; }
+
 @media (max-width: 768px) {
-  body { overflow-x: hidden !important; }
-  .header-controls { width: 100% !important; }
+  html, body { overflow-x: hidden !important; max-width: 100% !important; }
+  .header {
+    padding: 0.65rem 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+  .header-controls {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 0.35rem !important;
+  }
   .header-controls .btn,
-  .header-controls .utility-btn { padding: 0.35rem 0.65rem !important; font-size: 0.8rem !important; }
+  .header-controls .utility-btn {
+    padding: 0.35rem 0.5rem !important;
+    font-size: 0.72rem !important;
+    gap: 0.3rem !important;
+    white-space: nowrap !important;
+  }
+  .header-controls .theme-toggle {
+    width: 34px !important;
+    height: 34px !important;
+  }
+}
+
+/* Icon-only action buttons on very narrow phones so Format/Minify/Copy/Clear/theme fit */
+@media (max-width: 420px) {
+  .header-controls .btn {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    gap: 0 !important;
+    padding: 0.5rem 0.55rem !important;
+  }
+  .header-controls .btn i {
+    font-size: 0.9rem !important;
+    line-height: 1 !important;
+  }
+  .header-controls .btn .usage-count-short {
+    font-size: 0.7rem !important;
+    line-height: 1 !important;
+    margin-left: 0.2rem !important;
+  }
 }
