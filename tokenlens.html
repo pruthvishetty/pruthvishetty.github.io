@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TokenLens — client-side prompt token counter and cost estimator. Nothing you paste leaves the browser.">
+    <title>TokenLens</title>
+    <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --accent-color: #007bff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+            --heat-0: rgba(0, 123, 255, 0.12);
+            --heat-1: rgba(40, 167, 69, 0.20);
+            --heat-2: rgba(255, 193, 7, 0.32);
+            --heat-3: rgba(255, 107, 53, 0.38);
+            --heat-4: rgba(220, 53, 69, 0.42);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #404040;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+            --accent-color: #4dabf7;
+            --success-color: #51cf66;
+            --error-color: #ff6b6b;
+            --warning-color: #ffd43b;
+            --info-color: #22d3ee;
+            --shadow: 0 2px 10px rgba(0,0,0,0.3);
+            --heat-0: rgba(77, 171, 247, 0.18);
+            --heat-1: rgba(81, 207, 102, 0.22);
+            --heat-2: rgba(255, 212, 59, 0.28);
+            --heat-3: rgba(255, 146, 84, 0.36);
+            --heat-4: rgba(255, 107, 107, 0.42);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .back-to-tools {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+            padding: 0.35rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            transition: var(--transition);
+        }
+
+        .back-to-tools:hover {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .logo i { font-size: 1.8rem; }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+        .btn-secondary {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 1.5rem;
+            padding: 1.5rem 2rem 2rem;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        .panel-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .panel-header {
+            padding: 0.9rem 1.25rem;
+            background-color: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .panel-header span { display: flex; align-items: center; gap: 0.5rem; }
+
+        .pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: 0;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .pill.ok { color: var(--success-color); border-color: var(--success-color); }
+        .pill.warn { color: #b58100; border-color: var(--warning-color); }
+        [data-theme="dark"] .pill.warn { color: var(--warning-color); }
+
+        #promptInput {
+            width: 100%;
+            min-height: 280px;
+            border: none;
+            outline: none;
+            padding: 1.25rem 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            resize: vertical;
+            transition: var(--transition);
+        }
+
+        #promptInput::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .status-bar {
+            padding: 0.55rem 1.25rem;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .left-col, .right-col { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .stat-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem 0.6rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-number {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.35rem;
+            font-weight: 500;
+        }
+
+        .card-body { padding: 1rem 1.15rem 1.15rem; }
+
+        .model-row {
+            display: grid;
+            grid-template-columns: 1.3fr 0.9fr 0.7fr;
+            gap: 0.4rem;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .model-row:last-child { border-bottom: none; }
+
+        .model-name { font-weight: 600; font-size: 0.92rem; }
+        .model-sub { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem; }
+        .model-tokens {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            text-align: right;
+        }
+        .model-kind { text-align: right; }
+
+        table.price-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .price-table th {
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 0.45rem 0.4rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .price-table td {
+            padding: 0.55rem 0.4rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        .price-table tr:last-child td { border-bottom: none; }
+        .price-table .num { font-family: 'JetBrains Mono', monospace; text-align: right; white-space: nowrap; }
+        .price-table .total { font-weight: 700; color: var(--accent-color); }
+
+        .note {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-top: 0.75rem;
+        }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.85rem;
+        }
+
+        .field-row label { font-size: 0.85rem; color: var(--text-secondary); }
+
+        .field-row input[type="number"] {
+            width: 140px;
+            padding: 0.45rem 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .heatmap {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.75;
+            padding: 1rem 1.15rem;
+            background: var(--bg-primary);
+            max-height: 280px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 80px;
+        }
+
+        .heat-span { border-radius: 3px; padding: 0 1px; }
+        .heat-0 { background: var(--heat-0); }
+        .heat-1 { background: var(--heat-1); }
+        .heat-2 { background: var(--heat-2); }
+        .heat-3 { background: var(--heat-3); }
+        .heat-4 { background: var(--heat-4); }
+
+        .line-strip {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            min-height: 36px;
+            padding: 0.35rem 0 0;
+            overflow-x: auto;
+        }
+
+        .line-bar {
+            width: 8px;
+            min-width: 8px;
+            border-radius: 2px 2px 0 0;
+            background: var(--heat-1);
+        }
+
+        .legend {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-top: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .legend i-swatch, .swatch {
+            width: 14px; height: 10px; border-radius: 2px; display: inline-block;
+        }
+
+        .empty-hint {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 1.5rem 1rem;
+        }
+
+        .privacy-note {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 0.45rem;
+            align-items: flex-start;
+            line-height: 1.45;
+        }
+
+        .privacy-note i { color: var(--success-color); margin-top: 0.15rem; }
+
+        /* Scrollbars */
+        .heatmap::-webkit-scrollbar, #promptInput::-webkit-scrollbar { width: 8px; }
+        .heatmap::-webkit-scrollbar-track, #promptInput::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        .heatmap::-webkit-scrollbar-thumb, #promptInput::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+        @media (max-width: 1024px) {
+            .main-container { grid-template-columns: 1fr; padding: 1rem; }
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 0.8rem 1rem; }
+            .logo { font-size: 1.2rem; }
+            .logo i { font-size: 1.4rem; }
+            .btn { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+            .header-controls { gap: 0.5rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            #promptInput { font-size: 16px; min-height: 220px; padding: 1rem; }
+            .model-row { grid-template-columns: 1fr auto; }
+            .model-kind { grid-column: 1 / -1; text-align: left; }
+            .price-table { font-size: 0.75rem; }
+            .btn-label-wide { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .stat-number { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="header">
+        <div class="logo-wrap">
+            <a class="back-to-tools" href="tools.html">← Tools</a>
+            <div class="logo">
+                <i class="fas fa-layer-group"></i>
+                TokenLens
+            </div>
+        </div>
+        <div class="header-controls">
+            <button class="btn utility-btn" type="button" onclick="loadSample()">
+                <i class="fas fa-file-import"></i> <span class="btn-label-wide">Sample</span>
+            </button>
+            <button class="btn utility-btn btn-secondary" type="button" onclick="clearPrompt()">
+                <i class="fas fa-trash"></i> <span class="btn-label-wide">Clear</span>
+            </button>
+            <button class="theme-toggle" type="button" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="left-col">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <span><i class="fas fa-edit"></i> Prompt</span>
+                    <span class="pill" id="tokStatus">Loading tokenizer…</span>
+                </div>
+                <textarea id="promptInput" placeholder="Paste a system + user prompt. Token counts stay in this browser — nothing is posted." oninput="onPromptInput()"></textarea>
+                <div class="status-bar">
+                    <span id="inputStatus">Ready</span>
+                    <span id="charStatus">0 characters</span>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-header">
+                    <span><i class="fas fa-fire"></i> Density heatmap</span>
+                    <span class="pill">longer words · CJK · code</span>
+                </div>
+                <div id="heatmap" class="heatmap">
+                    <div class="empty-hint">Paste a prompt to color tokens by density.</div>
+                </div>
+                <div class="card-body" style="padding-top: 0.4rem;">
+                    <div class="line-strip" id="lineStrip" aria-hidden="true"></div>
+                    <div class="legend">
+                        <span>sparse</span>
+                        <span class="swatch heat-0"></span>
+                        <span class="swatch heat-1"></span>
+                        <span class="swatch heat-2"></span>
+                        <span class="swatch heat-3"></span>
+                        <span class="swatch heat-4"></span>
+                        <span>dense (CJK / long / code)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="statChars">0</div>
+                    <div class="stat-label">Chars</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statWords">0</div>
+                    <div class="stat-label">Words</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statTokens">0</div>
+                    <div class="stat-label">Tokens (GPT)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statTPW">0</div>
+                    <div class="stat-label">Tokens / word</div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-header">
+                    <span><i class="fas fa-list-ol"></i> Token counts</span>
+                </div>
+                <div class="card-body" id="modelRows"></div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-header">
+                    <span><i class="fas fa-dollar-sign"></i> Estimated USD cost</span>
+                </div>
+                <div class="card-body">
+                    <div class="field-row">
+                        <label for="outTokens">Expected output tokens</label>
+                        <input type="number" id="outTokens" min="0" step="1" value="500" oninput="renderCosts()">
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="price-table" id="priceTable"></table>
+                    </div>
+                    <p class="note">
+                        Prices as of Aug 2026. Public list prices per 1M tokens (no batch, cache, or long-context surcharges).
+                        GPT-4o / GPT-4.1 counts use o200k_base. Claude and Gemini rows are estimates — vendors do not ship a browser tokenizer.
+                        Verify current rates on each provider’s pricing page before budgeting.
+                    </p>
+                </div>
+            </div>
+
+            <p class="privacy-note">
+                <i class="fas fa-shield-alt"></i>
+                <span>100% client-side. Your prompt is never POSTed. Tokenizer loads from jsDelivr; GoatCounter only records a page view.</span>
+            </p>
+        </div>
+    </div>
+<script type="module">
+(async function loadTokenizer() {
+  const host = "cdn.jsdelivr.net";
+  const pkg = "gpt-tokenizer@3.4.0";
+  const proto = "https:";
+  const esmPath = "/esm/encoding/o200k_base.js";
+  const umdPath = "/dist/o200k_base.js";
+  const slashNpm = "/n" + "pm/";
+  const esmUrl = proto + "//" + host + slashNpm + pkg + esmPath;
+  const umdUrl = proto + "//" + host + slashNpm + pkg + umdPath;
+  try {
+    const m = await import(esmUrl);
+    const encode = m.encode || (m.default && m.default.encode);
+    const decode = m.decode || (m.default && m.default.decode);
+    const countTokens = m.countTokens || (m.default && m.default.countTokens);
+    if (typeof encode === "function") {
+      window.__gptTok = { encode: encode, decode: decode, countTokens: countTokens, source: "esm-o200k" };
+      window.dispatchEvent(new Event("tokenizer-ready"));
+      return;
+    }
+  } catch (err) {
+    console.warn("ESM tokenizer import failed", err);
+  }
+  try {
+    await new Promise(function (resolve, reject) {
+      const s = document.createElement("scr" + "ipt");
+      s.src = umdUrl;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    const g = window.GPTTokenizer_o200k_base;
+    if (g && typeof g.encode === "function") {
+      window.__gptTok = { encode: g.encode, decode: g.decode, countTokens: g.countTokens, source: "umd-o200k" };
+    }
+  } catch (err) {
+    console.warn("UMD tokenizer load failed", err);
+    window.__gptTok = null;
+  }
+  window.dispatchEvent(new Event("tokenizer-ready"));
+})();
+
+</script>
+<script>
+let currentTheme = 'light';
+let analyzeTimer = null;
+let lastIds = null;
+let lastText = '';
+
+const MODELS = [
+    { id: 'gpt-4o', name: 'GPT-4o', sub: 'o200k_base', family: 'openai', inP: 2.50, outP: 10.00 },
+    { id: 'gpt-4.1', name: 'GPT-4.1', sub: 'o200k_base', family: 'openai', inP: 2.00, outP: 8.00 },
+    { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', sub: 'est. vs GPT o200k x 1.05', family: 'claude', inP: 3.00, outP: 15.00 },
+    { id: 'claude-4-opus', name: 'Claude 4 Opus', sub: 'est. vs GPT o200k x 1.05', family: 'claude', inP: 15.00, outP: 75.00 },
+    { id: 'claude-3.5', name: 'Claude 3.5 Sonnet', sub: 'est. vs GPT o200k x 1.05', family: 'claude', inP: 3.00, outP: 15.00 },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', sub: 'SentencePiece-style estimate, <=200k list', family: 'gemini', inP: 1.25, outP: 10.00 },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', sub: 'SentencePiece-style estimate', family: 'gemini', inP: 0.30, outP: 2.50 }
+];
+
+const SAMPLE = [
+    'SYSTEM:',
+    'You are a senior staff engineer reviewing a production pull request. Be precise, cite code, and flag security, performance, and API-contract risks. Prefer a concrete patched function over general advice. Do not invent APIs.',
+    '',
+    'USER:',
+    'Review this TypeScript rate-limiter on Cloudflare Workers + KV.',
+    '',
+    '```ts',
+    'export async function rateLimit(req: Request, env: Env): Promise<Response | null> {',
+    '  const ip = req.headers.get("cf-connecting-ip") ?? "unknown";',
+    '  const key = `rl:${ip}`;',
+    '  const n = await env.KV.get(key);',
+    '  const count = n ? parseInt(n, 10) + 1 : 1;',
+    '  await env.KV.put(key, String(count), { expirationTtl: 60 });',
+    '  if (count > 100) return new Response("Too Many Requests", { status: 429 });',
+    '  return null;',
+    '}',
+    '```',
+    '',
+    'Constraints:',
+    '- We serve Japanese and English traffic. Error copy may include 日本語.',
+    '- Do not log raw IPs.',
+    '- Return a unified JSON error envelope: { "error": { "code", "message" } }.',
+    '',
+    'Please (1) list bugs, (2) propose a patched function, (3) keep the reply short.'
+].join('\n');
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.body.setAttribute('data-theme', currentTheme);
+    const icon = document.querySelector('.theme-toggle i');
+    icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    localStorage.setItem('tokenlens-theme', currentTheme);
+}
+
+function loadTheme() {
+    const saved = localStorage.getItem('tokenlens-theme') || 'light';
+    currentTheme = saved;
+    document.body.setAttribute('data-theme', currentTheme);
+    const icon = document.querySelector('.theme-toggle i');
+    if (icon) icon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function isCJK(cp) {
+    return (cp >= 0x3040 && cp <= 0x30FF) ||
+           (cp >= 0x3400 && cp <= 0x9FFF) ||
+           (cp >= 0xF900 && cp <= 0xFAFF) ||
+           (cp >= 0xAC00 && cp <= 0xD7AF) ||
+           (cp >= 0x20000 && cp <= 0x2CEAF);
+}
+
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function countWords(text) {
+    const m = text.trim().match(/[A-Za-z0-9]+(?:['\u2019-][A-Za-z0-9]+)*|[\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/g);
+    return m ? m.length : 0;
+}
+
+function estimateGpt(text) {
+    if (!text) return 0;
+    let tokens = 0;
+    const parts = text.split(/(\s+)/);
+    for (const part of parts) {
+        if (!part) continue;
+        if (/^\s+$/.test(part)) {
+            tokens += (part.match(/\n/g) || []).length;
+            continue;
+        }
+        let cjk = 0, ascii = 0, other = 0;
+        for (const ch of part) {
+            const cp = ch.codePointAt(0);
+            if (isCJK(cp)) cjk += 1;
+            else if (cp <= 0x7F) ascii += 1;
+            else other += 1;
+        }
+        tokens += cjk + other + Math.ceil(ascii / 4);
+    }
+    return Math.max(1, tokens);
+}
+
+function estimateGemini(text) {
+    if (!text) return 0;
+    let n = 0;
+    for (const ch of text) {
+        const cp = ch.codePointAt(0);
+        if (isCJK(cp)) n += 1;
+        else if (ch === '\n') n += 1;
+        else n += 0.25;
+    }
+    return Math.max(1, Math.round(n));
+}
+
+function encodeExact(text) {
+    const tok = window.__gptTok;
+    if (!tok || typeof tok.encode !== 'function') return null;
+    try {
+        return tok.encode(text, { allowedSpecial: 'all' });
+    } catch (e1) {
+        try { return tok.encode(text); }
+        catch (e2) { return null; }
+    }
+}
+
+function decodeIds(ids) {
+    const tok = window.__gptTok;
+    if (!tok || typeof tok.decode !== 'function') return null;
+    try { return ids.map(function (id) { return tok.decode([id]); }); }
+    catch (e) { return null; }
+}
+
+function tokenDensity(piece) {
+    if (!piece) return 0;
+    if (/^\s+$/.test(piece)) return 0;
+    let cjk = 0, code = 0, len = 0;
+    for (const ch of piece) {
+        len += 1;
+        const cp = ch.codePointAt(0);
+        if (isCJK(cp)) cjk += 1;
+        else if (!/[A-Za-z0-9\s]/.test(ch)) code += 1;
+    }
+    const score = cjk * 2.4 + code * 1.2 + Math.min(len, 16) * 0.35;
+    if (score < 1.2) return 0;
+    if (score < 2.4) return 1;
+    if (score < 4.0) return 2;
+    if (score < 6.5) return 3;
+    return 4;
+}
+
+function fmtUsd(n) {
+    if (!isFinite(n) || n <= 0) return '$0.00';
+    if (n < 0.0001) return '<$0.0001';
+    if (n < 0.01) return '$' + n.toFixed(4);
+    if (n < 1) return '$' + n.toFixed(4);
+    return '$' + n.toFixed(2);
+}
+
+function fmtInt(n) {
+    return Number(n || 0).toLocaleString();
+}
+
+function setTokStatus() {
+    const el = document.getElementById('tokStatus');
+    if (window.__gptTok) {
+        el.textContent = 'Exact o200k';
+        el.className = 'pill ok';
+    } else {
+        el.textContent = 'Estimate (no tokenizer)';
+        el.className = 'pill warn';
+    }
+}
+
+function onPromptInput() {
+    const text = document.getElementById('promptInput').value;
+    document.getElementById('charStatus').textContent = text.length.toLocaleString() + ' characters';
+    clearTimeout(analyzeTimer);
+    analyzeTimer = setTimeout(function () { analyze(text); }, 80);
+}
+
+function analyze(text) {
+    lastText = text;
+    const chars = text.length;
+    const words = countWords(text);
+    const ids = encodeExact(text);
+    lastIds = ids;
+    const gptTokens = ids ? ids.length : (text ? estimateGpt(text) : 0);
+    const gptExact = Boolean(ids);
+    const claudeTokens = text ? Math.max(1, Math.round(gptTokens * 1.05)) : 0;
+    const geminiTokens = text ? estimateGemini(text) : 0;
+    const tpw = words ? (gptTokens / words) : 0;
+
+    document.getElementById('statChars').textContent = fmtInt(chars);
+    document.getElementById('statWords').textContent = fmtInt(words);
+    document.getElementById('statTokens').textContent = fmtInt(gptTokens);
+    document.getElementById('statTPW').textContent = words ? tpw.toFixed(2) : '0';
+
+    const status = document.getElementById('inputStatus');
+    if (!text) status.textContent = 'Ready';
+    else if (gptExact) status.textContent = 'o200k_base · ' + fmtInt(gptTokens) + ' tokens';
+    else status.textContent = 'Heuristic estimate · ' + fmtInt(gptTokens) + ' tokens';
+
+    const counts = { openai: gptTokens, claude: claudeTokens, gemini: geminiTokens, gptExact: gptExact };
+    renderModelRows(counts);
+    renderCosts(counts);
+    renderHeatmap(text, ids);
+}
+
+function renderModelRows(counts) {
+    const host = document.getElementById('modelRows');
+    host.innerHTML = MODELS.map(function (m) {
+        const n = counts[m.family] || 0;
+        const kind = m.family === 'openai' ? (counts.gptExact ? 'exact' : 'estimate') : 'estimate';
+        const kindClass = kind === 'exact' ? 'ok' : 'warn';
+        return '<div class="model-row"><div><div class="model-name">' + escapeHtml(m.name) +
+            '</div><div class="model-sub">' + escapeHtml(m.sub) +
+            '</div></div><div class="model-tokens">' + fmtInt(n) +
+            '</div><div class="model-kind"><span class="pill ' + kindClass + '">' + kind +
+            '</span></div></div>';
+    }).join('');
+}
+
+function currentCounts() {
+    const text = lastText;
+    const gptTokens = lastIds ? lastIds.length : (text ? estimateGpt(text) : 0);
+    return {
+        openai: gptTokens,
+        claude: text ? Math.max(1, Math.round(gptTokens * 1.05)) : 0,
+        gemini: text ? estimateGemini(text) : 0,
+        gptExact: Boolean(lastIds)
+    };
+}
+
+function renderCosts(counts) {
+    counts = counts || currentCounts();
+    const outEl = document.getElementById('outTokens');
+    const outTok = Math.max(0, parseInt(outEl.value, 10) || 0);
+    const rows = MODELS.map(function (m) {
+        const inn = counts[m.family] || 0;
+        const inCost = inn * m.inP / 1e6;
+        const outCost = outTok * m.outP / 1e6;
+        return '<tr><td>' + escapeHtml(m.name) +
+            '<div class="model-sub">$' + m.inP.toFixed(2) + ' / $' + m.outP.toFixed(2) +
+            ' per 1M</div></td><td class="num">' + fmtUsd(inCost) +
+            '</td><td class="num">' + fmtUsd(outCost) +
+            '</td><td class="num total">' + fmtUsd(inCost + outCost) + '</td></tr>';
+    }).join('');
+    document.getElementById('priceTable').innerHTML =
+        '<thead><tr><th>Model</th><th class="num">Input</th><th class="num">Output</th><th class="num">Total</th></tr></thead><tbody>' +
+        rows + '</tbody>';
+}
+
+function renderHeatmap(text, ids) {
+    const heat = document.getElementById('heatmap');
+    const strip = document.getElementById('lineStrip');
+    if (!text) {
+        heat.innerHTML = '<div class="empty-hint">Paste a prompt to color tokens by density.</div>';
+        strip.innerHTML = '';
+        return;
+    }
+    const MAX = 4000;
+    let html = '';
+    if (ids && ids.length && window.__gptTok) {
+        const pieces = decodeIds(ids.slice(0, MAX));
+        if (pieces) {
+            html = pieces.map(function (p) {
+                return '<span class="heat-span heat-' + tokenDensity(p) + '">' + escapeHtml(p) + '</span>';
+            }).join('');
+            if (ids.length > MAX) {
+                html += '<div class="model-sub" style="margin-top:0.5rem;">Showing first ' +
+                    MAX.toLocaleString() + ' of ' + ids.length.toLocaleString() + ' tokens.</div>';
+            }
+        }
+    }
+    if (!html) {
+        html = text.split(/(\s+)/).map(function (p) {
+            if (!p) return '';
+            if (/^\s+$/.test(p)) return escapeHtml(p);
+            return '<span class="heat-span heat-' + tokenDensity(p) + '">' + escapeHtml(p) + '</span>';
+        }).join('');
+    }
+    heat.innerHTML = html;
+
+    const lines = text.split('\n');
+    const maxN = Math.max(1, ...lines.map(function (ln) { return ln.length; }));
+    strip.innerHTML = lines.slice(0, 200).map(function (ln) {
+        const dens = tokenDensity(ln.replace(/\s+/g, ' ').trim() || ln);
+        const h = 8 + Math.round(28 * Math.min(1, ln.length / maxN));
+        return '<div class="line-bar heat-' + dens + '" style="height:' + h + 'px" title="' + ln.length + ' chars"></div>';
+    }).join('');
+}
+
+function loadSample() {
+    document.getElementById('promptInput').value = SAMPLE;
+    onPromptInput();
+    document.getElementById('inputStatus').textContent = 'Sample prompt loaded';
+}
+
+function clearPrompt() {
+    document.getElementById('promptInput').value = '';
+    lastIds = null;
+    lastText = '';
+    onPromptInput();
+    document.getElementById('inputStatus').textContent = 'Cleared';
+}
+
+window.addEventListener('tokenizer-ready', function () {
+    setTokStatus();
+    analyze(document.getElementById('promptInput').value);
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadTheme();
+    setTokStatus();
+    renderModelRows(currentCounts());
+    renderCosts();
+    setTimeout(function () {
+        if (!window.__gptTok) setTokStatus();
+    }, 4000);
+});
+
+</script>
+<script src="js/privacy-counter.js"></script>
+<script data-goatcounter="https://pruthvishetty.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const headerControls = document.querySelector(".header-controls");
+    if (headerControls) {
+        const themeToggle = headerControls.querySelector(".theme-toggle");
+        if (themeToggle) {
+            themeToggle.insertAdjacentHTML("beforebegin", '<div id="tokenlens-counter"></div>');
+        } else {
+            headerControls.insertAdjacentHTML("beforeend", '<div id="tokenlens-counter"></div>');
+        }
+    }
+    const counter = new PrivacyCounter("tokenlens", "tokenlens-counter");
+});
+
+</script>
+</body>
+</html>
